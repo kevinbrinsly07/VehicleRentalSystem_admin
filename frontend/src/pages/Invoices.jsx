@@ -79,11 +79,11 @@ function InvoicePDF({ invoice }) {
           </View>
           <View style={pdfStyles.row}>
             <Text style={pdfStyles.label}>Total Cost:</Text>
-            <Text style={pdfStyles.value}>${invoice.total_cost.toFixed(2)}</Text>
+            <Text style={pdfStyles.value}>LKR {invoice.total_cost.toFixed(2)}</Text>
           </View>
           <View style={pdfStyles.row}>
             <Text style={pdfStyles.label}>Deposit Paid:</Text>
-            <Text style={pdfStyles.value}>${invoice.deposit_amount.toFixed(2)}</Text>
+            <Text style={pdfStyles.value}>LKR {invoice.deposit_amount.toFixed(2)}</Text>
           </View>
           <View style={pdfStyles.row}>
             <Text style={pdfStyles.label}>Payment Status:</Text>
@@ -112,6 +112,22 @@ function Invoices() {
   const [selectedRentalId, setSelectedRentalId] = useState('');
   const [invoice, setInvoice] = useState(null);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!selectedRentalId) return;
+    // Auto-generate (fetch) invoice on selection
+    const run = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/rentals/${selectedRentalId}/invoice`);
+        setInvoice(res.data);
+        setError(null);
+      } catch (err) {
+        setError(err.response?.data?.detail || 'Failed to generate invoice. Please try again.');
+        console.error('Error fetching invoice:', err);
+      }
+    };
+    run();
+  }, [selectedRentalId]);
 
   useEffect(() => {
     fetchCompletedRentals();
@@ -162,30 +178,50 @@ function Invoices() {
         </motion.div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <motion.select
-          whileHover={{ scale: 1.02 }}
-          value={selectedRentalId}
-          onChange={(e) => setSelectedRentalId(e.target.value)}
-          className="p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
-        >
-          <option value="">Select Completed Rental</option>
-          {rentals.map((rental) => (
-            <option key={rental.id} value={rental.id}>
-              ID: {rental.id} - Car: {rental.car_id}, End: {rental.end_date}
-            </option>
-          ))}
-        </motion.select>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={fetchInvoice}
-          disabled={!selectedRentalId}
-          className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition-colors disabled:opacity-50"
-        >
-          <DocumentTextIcon className="h-5 w-5" />
-          Generate Invoice
-        </motion.button>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden mb-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-100 text-gray-700">
+                  <th className="p-4 text-left font-semibold">Select</th>
+                  <th className="p-4 text-left font-semibold">Rental ID</th>
+                  <th className="p-4 text-left font-semibold">Car ID</th>
+                  <th className="p-4 text-left font-semibold">End Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rentals.map((rental, index) => (
+                  <motion.tr
+                    key={rental.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className={`border-t border-gray-200 transition cursor-pointer ${
+                      selectedRentalId === String(rental.id)
+                        ? 'bg-gray-100 font-medium'
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => setSelectedRentalId(String(rental.id))}
+                    aria-selected={selectedRentalId === String(rental.id)}
+                  >
+                    <td className="p-4">
+                      <input
+                        type="radio"
+                        name="selectedRental"
+                        checked={selectedRentalId === String(rental.id)}
+                        onChange={() => setSelectedRentalId(String(rental.id))}
+                      />
+                    </td>
+                    <td className="p-4 text-gray-600">{rental.id}</td>
+                    <td className="p-4 text-gray-600">{rental.car_id}</td>
+                    <td className="p-4 text-gray-600">{rental.end_date}</td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -219,12 +255,10 @@ function Invoices() {
                   {invoice.end_date}
                 </p>
                 <p className="text-gray-600">
-                  <span className="font-semibold">Total Cost:</span> $
-                  {invoice.total_cost.toFixed(2)}
+                  <span className="font-semibold">Total Cost:</span> LKR {invoice.total_cost.toFixed(2)}
                 </p>
                 <p className="text-gray-600">
-                  <span className="font-semibold">Deposit Paid:</span> $
-                  {invoice.deposit_amount.toFixed(2)}
+                  <span className="font-semibold">Deposit Paid:</span> LKR {invoice.deposit_amount.toFixed(2)}
                 </p>
                 <p className="text-gray-600">
                   <span className="font-semibold">Payment Status:</span>{' '}

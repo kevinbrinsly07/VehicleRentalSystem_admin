@@ -11,6 +11,7 @@ function Customers() {
   const [formData, setFormData] = useState({ name: '', email: '' });
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState(null);
+  const [files, setFiles] = useState({ id_card: null, driving_license: null });
 
   useEffect(() => {
     fetchCustomers();
@@ -31,12 +32,23 @@ function Customers() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    setFiles((prev) => ({ ...prev, [name]: files[0] || null }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE}/customers`, formData);
+      const fd = new FormData();
+      fd.append('name', formData.name);
+      fd.append('email', formData.email);
+      if (files.id_card) fd.append('id_card', files.id_card);
+      if (files.driving_license) fd.append('driving_license', files.driving_license);
+      await axios.post(`${API_BASE}/customers`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       setShowForm(false);
       setFormData({ name: '', email: '' });
+      setFiles({ id_card: null, driving_license: null });
       setError(null);
       fetchCustomers();
     } catch (err) {
@@ -114,6 +126,28 @@ function Customers() {
                 required
               />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">ID Card</span>
+                <input
+                  type="file"
+                  name="id_card"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-gray-700">Driving License</span>
+                <input
+                  type="file"
+                  name="driving_license"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  className="mt-1 w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
+                />
+              </label>
+            </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -139,6 +173,8 @@ function Customers() {
               <th className="p-4 text-left font-semibold">ID</th>
               <th className="p-4 text-left font-semibold">Name</th>
               <th className="p-4 text-left font-semibold">Email</th>
+              <th className="p-4 text-left font-semibold">ID Card</th>
+              <th className="p-4 text-left font-semibold">Driving License</th>
             </tr>
           </thead>
           <tbody>
@@ -153,6 +189,34 @@ function Customers() {
                 <td className="p-4 text-gray-600">{customer.id}</td>
                 <td className="p-4 text-gray-600">{customer.name}</td>
                 <td className="p-4 text-gray-600">{customer.email}</td>
+                <td className="p-4 text-gray-600">
+                  {customer.id_card_url ? (
+                    <a
+                      href={`http://localhost:8000${customer.id_card_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-3 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-100"
+                    >
+                      View
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </td>
+                <td className="p-4 text-gray-600">
+                  {customer.driving_license_url ? (
+                    <a
+                      href={`http://localhost:8000${customer.driving_license_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-3 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-100"
+                    >
+                      View
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </td>
               </motion.tr>
             ))}
           </tbody>

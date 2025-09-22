@@ -16,8 +16,6 @@ import {
   DocumentCurrencyDollarIcon,
   Bars3Icon,
   XMarkIcon,
-  ShieldCheckIcon,
-  WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 
 import Cars from "./pages/Cars.jsx";
@@ -621,322 +619,285 @@ function AppContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col poppins">
-      {/* Navbar */}
-      <motion.nav
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="bg-gray-900 text-white shadow-lg"
+    <div className="min-h-screen bg-gray-50 flex poppins">
+      {/* Mobile menu toggle */}
+      <button
+        className="md:hidden fixed top-4 left-4 z-50 rounded-md p-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle menu"
+     >
+        {mobileMenuOpen ? (
+          <XMarkIcon className="h-6 w-6" />
+        ) : (
+          <Bars3Icon className="h-6 w-6" />
+        )}
+      </button>
+
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-72 bg-gray-900 text-white transform transition-transform duration-300 md:translate-x-0 ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link
-            to="/"
-            className="text-xl uppercase font-bold tracking-tight text-white hover:text-red-500 transition flex items-center gap-2"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <currentNavItem.icon className="h-6 w-6" />
-            Dashboard
-          </Link>
-
-          {/* Desktop menu */}
-          <div className="hidden 2xl:flex space-x-6">
-            {navItems.map((item) => (
-              <motion.div
-                key={item.path}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Link
-                  to={item.path}
-                  className="flex items-center gap-2 font-[600] text-gray-300 hover:text-red-500 transition-colors"
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            className="2xl:hidden focus:outline-none"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? (
-              <XMarkIcon className="h-6 w-6 text-white" />
-            ) : (
-              <Bars3Icon className="h-6 w-6 text-white" />
-            )}
-          </button>
+        <div className="h-16 flex items-center px-4 text-xl uppercase font-bold tracking-tight border-b border-gray-800">
+          <currentNavItem.icon className="h-6 w-6 mr-2" />
+          Dashboard
         </div>
-
-        {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="2xl:hidden bg-gray-800"
-          >
-            {navItems.map((item) => (
+        <nav className="px-2 py-3 space-y-1 overflow-y-auto h-[calc(100%-4rem)]">
+          {navItems.map((item) => {
+            const active = location.pathname === item.path;
+            return (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 text-gray-300 hover:text-red-500 transition-colors"
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  active
+                    ? "bg-gray-800 text-red-500"
+                    : "text-gray-300 hover:text-white hover:bg-gray-800"
+                }`}
               >
-                <item.icon className="h-5 w-5" />
-                {item.label}
+                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="font-semibold">{item.label}</span>
               </Link>
-            ))}
-          </motion.div>
-        )}
-      </motion.nav>
+            );
+          })}
+        </nav>
+      </aside>
 
-      {/* Main Content */}
-      <div className="flex-grow container mx-auto px-4 py-8">
-        <AnimatePresence>
-          <Routes>
-            <Route
-              path="/cars"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Cars />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Customers />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/rentals"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Rentals />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/invoices"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Invoices />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/compliance"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <CompliancePage />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/maintenance"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <MaintenancePage />
-                </motion.div>
-              }
-            />
-            <Route
-              path="/admin-users"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <UsersPage />
-                </motion.div>
-              }
-            />
-            {/* HOME PAGE */}
-            <Route
-              path="/"
-              element={
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="flex flex-col items-center justify-center text-gray-800 min-h-[80vh]"
-                >
-                  <div className="text-center mb-20 px-4">
-                    <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-gray-800 to-gray-500 bg-clip-text text-transparent">
-                      Welcome to <br /> Rental Dashboard
-                    </h1>
+      {/* Main content */}
+      <main className="flex-1 md:ml-72 w-full">
+        <div className="container mx-auto px-4 py-8">
+          <AnimatePresence>
+            <Routes>
+              <Route
+                path="/cars"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Cars />
+                  </motion.div>
+                }
+              />
+              <Route
+                path="/customers"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Customers />
+                  </motion.div>
+                }
+              />
+              <Route
+                path="/rentals"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Rentals />
+                  </motion.div>
+                }
+              />
+              <Route
+                path="/invoices"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Invoices />
+                  </motion.div>
+                }
+              />
+              <Route
+                path="/compliance"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <CompliancePage />
+                  </motion.div>
+                }
+              />
+              <Route
+                path="/maintenance"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <MaintenancePage />
+                  </motion.div>
+                }
+              />
+              <Route
+                path="/admin-users"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <UsersPage />
+                  </motion.div>
+                }
+              />
+              {/* HOME PAGE */}
+              <Route
+                path="/"
+                element={
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="flex flex-col items-center justify-center text-gray-800 min-h-[80vh]"
+                  >
+                    <div className="text-center mb-20 px-4">
+                      <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-gray-800 to-gray-500 bg-clip-text text-transparent">
+                        Welcome to <br /> Rental Dashboard
+                      </h1>
 
-                    {/* Stats section */}
-                    <div className="flex md:flex-row flex-col justify-center gap-12 text-gray-800">
-                      <div className="flex flex-col items-center">
-                        <span className="text-3xl font-extrabold text-red-500">
-                          {stats.vehicles}
-                        </span>
-                        <span className="uppercase text-sm tracking-wider">
-                          Vehicles
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-3xl font-extrabold text-red-500">
-                          {stats.customers}
-                        </span>
-                        <span className="uppercase text-sm tracking-wider">
-                          Customers
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-3xl font-extrabold text-red-500">
-                          {stats.rentals_active}
-                        </span>
-                        <span className="uppercase text-sm tracking-wider">
-                          Rentals
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-3xl font-extrabold text-red-500">
-                          {stats.invoices}
-                        </span>
-                        <span className="uppercase text-sm tracking-wider">
-                          Invoices
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-6 flex justify-center">
-                      <div className="rounded-full px-4 py-2 text-sm bg-gray-200 text-gray-800">
-                        Total Revenue:{" "}
-                        <span className="font-semibold">
-                          LKR{" "}
-                          {stats.revenue?.toLocaleString?.() ?? stats.revenue}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-8 grid gap-6 md:grid-cols-3">
-                      <div className="p-4 rounded-xl bg-white border border-gray-200">
-                        <div className="text-sm text-gray-500">
-                          Insurance expiring (30 days)
+                      {/* Stats section */}
+                      <div className="flex md:flex-row flex-col justify-center gap-12 text-gray-800">
+                        <div className="flex flex-col items-center">
+                          <span className="text-3xl font-extrabold text-red-500">
+                            {stats.vehicles}
+                          </span>
+                          <span className="uppercase text-sm tracking-wider">
+                            Vehicles
+                          </span>
                         </div>
-                        <div className="text-2xl font-bold text-red-500">
-                          {stats.insurance_expiring ?? 0}
+                        <div className="flex flex-col items-center">
+                          <span className="text-3xl font-extrabold text-red-500">
+                            {stats.customers}
+                          </span>
+                          <span className="uppercase text-sm tracking-wider">
+                            Customers
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-3xl font-extrabold text-red-500">
+                            {stats.rentals_active}
+                          </span>
+                          <span className="uppercase text-sm tracking-wider">
+                            Rentals
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-3xl font-extrabold text-red-500">
+                            {stats.invoices}
+                          </span>
+                          <span className="uppercase text-sm tracking-wider">
+                            Invoices
+                          </span>
                         </div>
                       </div>
-                      <div className="p-4 rounded-xl bg-white border border-gray-200">
-                        <div className="text-sm text-gray-500">
-                          Legal docs expiring (30 days)
-                        </div>
-                        <div className="text-2xl font-bold text-red-500">
-                          {stats.docs_expiring ?? 0}
+                      <div className="mt-6 flex justify-center">
+                        <div className="rounded-full px-4 py-2 text-sm bg-gray-200 text-gray-800">
+                          Total Revenue:{" "}
+                          <span className="font-semibold">
+                            LKR {stats.revenue?.toLocaleString?.() ?? stats.revenue}
+                          </span>
                         </div>
                       </div>
-                      <div className="p-4 rounded-xl bg-white border border-gray-200">
-                        <div className="text-sm text-gray-500">
-                          Maintenance due (30 days)
+                      <div className="mt-8 grid gap-6 md:grid-cols-3">
+                        <div className="p-4 rounded-xl bg-white border border-gray-200">
+                          <div className="text-sm text-gray-500">Insurance expiring (30 days)</div>
+                          <div className="text-2xl font-bold text-red-500">{stats.insurance_expiring ?? 0}</div>
                         </div>
-                        <div className="text-2xl font-bold text-red-500">
-                          {stats.maintenance_due ?? 0}
+                        <div className="p-4 rounded-xl bg-white border border-gray-200">
+                          <div className="text-sm text-gray-500">Legal docs expiring (30 days)</div>
+                          <div className="text-2xl font-bold text-red-500">{stats.docs_expiring ?? 0}</div>
+                        </div>
+                        <div className="p-4 rounded-xl bg-white border border-gray-200">
+                          <div className="text-sm text-gray-500">Maintenance due (30 days)</div>
+                          <div className="text-2xl font-bold text-red-500">{stats.maintenance_due ?? 0}</div>
+                        </div>
+                      </div>
+                      <div className="mt-6 flex justify-center">
+                        <div className="rounded-full px-4 py-2 text-sm bg-gray-100 text-gray-800">
+                          Active Users:{" "}
+                          <span className="font-semibold">{stats.users_active ?? 0}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="mt-6 flex justify-center">
-                      <div className="rounded-full px-4 py-2 text-sm bg-gray-100 text-gray-800">
-                        Active Users:{" "}
-                        <span className="font-semibold">
-                          {stats.users_active ?? 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 px-4">
-                    {[
-                      {
-                        title: "Vehicles",
-                        desc: "View and manage all available vehicles in your fleet.",
-                        icon: TruckIcon,
-                        path: "/cars",
-                      },
-                      {
-                        title: "Customers",
-                        desc: "Manage customer details and rental history.",
-                        icon: UserGroupIcon,
-                        path: "/customers",
-                      },
-                      {
-                        title: "Rentals",
-                        desc: "Track current and past rental transactions.",
-                        icon: DocumentTextIcon,
-                        path: "/rentals",
-                      },
-                      {
-                        title: "Invoices",
-                        desc: "Generate and manage billing invoices.",
-                        icon: DocumentCurrencyDollarIcon,
-                        path: "/invoices",
-                      },
-                    ].map((item, index) => (
-                      <Link to={item.path} key={item.title} className="h-full">
-                        <motion.div
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                          className={`${cardColors[index].bg} p-6 rounded-2xl shadow-md border border-gray-200 hover:shadow-md hover:shadow-red-500 hover:border-red-500 transition cursor-pointer h-full group`}
-                        >
-                          <item.icon
-                            className={`h-8 w-8 ${cardColors[index].icon} mb-4 group-hover:text-red-500`}
-                          />
-                          <h2 className="text-xl font-semibold mb-2 group-hover:text-red-500">
-                            {item.title}
-                          </h2>
-                          <p className="text-sm text-gray-700 group-hover:text-red-500">
-                            {item.desc}
-                          </p>
-                        </motion.div>
-                      </Link>
-                    ))}
-                  </div>
-                </motion.div>
-              }
-            />
-          </Routes>
-        </AnimatePresence>
-      </div>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 px-4">
+                      {[
+                        {
+                          title: "Vehicles",
+                          desc: "View and manage all available vehicles in your fleet.",
+                          icon: TruckIcon,
+                          path: "/cars",
+                        },
+                        {
+                          title: "Customers",
+                          desc: "Manage customer details and rental history.",
+                          icon: UserGroupIcon,
+                          path: "/customers",
+                        },
+                        {
+                          title: "Rentals",
+                          desc: "Track current and past rental transactions.",
+                          icon: DocumentTextIcon,
+                          path: "/rentals",
+                        },
+                        {
+                          title: "Invoices",
+                          desc: "Generate and manage billing invoices.",
+                          icon: DocumentCurrencyDollarIcon,
+                          path: "/invoices",
+                        },
+                      ].map((item, index) => (
+                        <Link to={item.path} key={item.title} className="h-full">
+                          <motion.div
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            className={`${cardColors[index].bg} p-6 rounded-2xl shadow-md border border-gray-200 hover:shadow-md hover:shadow-red-500 hover:border-red-500 transition cursor-pointer h-full group`}
+                          >
+                            <item.icon
+                              className={`h-8 w-8 ${cardColors[index].icon} mb-4 group-hover:text-red-500`}
+                            />
+                            <h2 className="text-xl font-semibold mb-2 group-hover:text-red-500">{item.title}</h2>
+                            <p className="text-sm text-gray-700 group-hover:text-red-500">{item.desc}</p>
+                          </motion.div>
+                        </Link>
+                      ))}
+                    </div>
+                  </motion.div>
+                }
+              />
+            </Routes>
+          </AnimatePresence>
+        </div>
+      </main>
     </div>
   );
 }

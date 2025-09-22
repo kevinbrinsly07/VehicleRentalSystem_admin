@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -6,6 +6,9 @@ import sqlite3
 import traceback
 from datetime import datetime, timedelta
 import logging
+
+import os
+from fastapi.staticfiles import StaticFiles
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +30,8 @@ class Customer(BaseModel):
     id: Optional[int] = None
     name: str
     email: str
+    id_card_url: Optional[str] = None
+    driving_license_url: Optional[str] = None
 
 
 class Rental(BaseModel):
@@ -117,6 +122,13 @@ class Database:
                         email TEXT NOT NULL UNIQUE
                     )
                 ''')
+                # Ensure new columns exist on customers
+                cursor.execute("PRAGMA table_info(customers)")
+                cols = [r[1] for r in cursor.fetchall()]
+                if 'id_card_url' not in cols:
+                    cursor.execute("ALTER TABLE customers ADD COLUMN id_card_url TEXT")
+                if 'driving_license_url' not in cols:
+                    cursor.execute("ALTER TABLE customers ADD COLUMN driving_license_url TEXT")
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS rentals (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -286,9 +298,9 @@ class Database:
             with self.conn:
                 cursor = self.conn.cursor()
                 cursor.execute('''
-                    INSERT INTO customers (name, email)
-                    VALUES (?, ?)
-                ''', (customer.name, customer.email))
+                    INSERT INTO customers (name, email, id_card_url, driving_license_url)
+                    VALUES (?, ?, ?, ?)
+                ''', (customer.name, customer.email, customer.id_card_url, customer.driving_license_url))
                 return cursor.lastrowid
         except sqlite3.IntegrityError as e:
             logger.error(
@@ -307,7 +319,7 @@ class Database:
                 cursor = self.conn.cursor()
                 cursor.execute('SELECT * FROM customers')
                 rows = cursor.fetchall()
-                return [Customer(id=row[0], name=row[1], email=row[2]) for row in rows]
+                return [Customer(id=row[0], name=row[1], email=row[2], id_card_url=row[3] if len(row) > 3 else None, driving_license_url=row[4] if len(row) > 4 else None) for row in rows]
         except sqlite3.Error as e:
             logger.error(
                 f"Database error in get_all_customers: {str(e)}\n{traceback.format_exc()}")
@@ -740,6 +752,10 @@ class Database:
 # FastAPI App
 app = FastAPI()
 
+# Ensure uploads directory exists and mount static files
+os.makedirs('uploads/customers', exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -805,16 +821,52 @@ def get_customers():
 
 
 @app.post("/customers", response_model=int)
-def add_customer(customer: Customer):
+def add_customer(
+    name: str = Form(...),
+    email: str = Form(...),
+    id_card: Optional[UploadFile] = File(None),
+    driving_license: Optional[UploadFile] = File(None),
+):
     try:
-        return db.add_customer(customer)
+        # Basic validation
+        if not name or not email:
+            raise HTTPException(status_code=400, detail="Invalid input: 'name' and 'email' are required.")
+        if "@" not in email:
+            raise HTTPException(status_code=400, detail="Invalid input: 'email' must be a valid email address.")
+
+        # Save files if provided
+        id_card_url = None
+        dl_url = None
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+
+        def _safe_filename(fname: str) -> str:
+            return fname.replace("/", "_").replace("\\", "_")
+
+        if id_card is not None and id_card.filename:
+            filename = f"customers/{timestamp}_id_{_safe_filename(id_card.filename)}"
+            dest_path = os.path.join("uploads", filename)
+            with open(dest_path, "wb") as out:
+                out.write(id_card.file.read())
+            id_card_url = f"/uploads/{filename}"
+
+        if driving_license is not None and driving_license.filename:
+            filename = f"customers/{timestamp}_dl_{_safe_filename(driving_license.filename)}"
+            dest_path = os.path.join("uploads", filename)
+            with open(dest_path, "wb") as out:
+                out.write(driving_license.file.read())
+            dl_url = f"/uploads/{filename}"
+
+        cust = Customer(name=name, email=email, id_card_url=id_card_url, driving_license_url=dl_url)
+        return db.add_customer(cust)
     except HTTPException:
         raise
     except Exception as e:
         logger.error(
-            f"Error in /customers POST endpoint: {str(e)}\n{traceback.format_exc()}")
+            f"Error in /customers POST endpoint: {str(e)}\n{traceback.format_exc()}"
+        )
         raise HTTPException(
-            status_code=500, detail="Failed to add customer due to a server error. Please try again.")
+            status_code=500, detail="Failed to add customer due to a server error. Please try again."
+        )
 
 
 @app.get("/rentals", response_model=List[Rental])

@@ -150,56 +150,50 @@ function Cars() {
         )}
       </AnimatePresence>
 
-      {/* Card Grid */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
       >
-        {cars.map((car, index) => (
-          <motion.div
-            key={car.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300"
-          >
-            <img
-              src={carImg}
-              alt={`${car.make} ${car.model}`}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-4 space-y-3">
-              <h2 className="text-xl font-semibold text-gray-800">{car.make} {car.model}</h2>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 8v4l3 3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 19c4.97 0 9-4.03 9-9s-4.03-9-9-9-9 4.03-9 9c0 3.53 2.07 6.61 5.05 8.05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  {car.year}
-                </span>
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 8c-1.1 0-2 .9-2 2 0 .55.23 1.05.6 1.4l1.4 1.4V17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 3v1m0 16v1m8.66-13.66l-.707.707M4.34 19.66l-.707-.707M21 12h1M2 12H1m16.66 4.66l-.707-.707M7.34 4.34l-.707.707" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  ${car.price_per_day}/day
-                </span>
-              </div>
-              <div>
-                <span
-                  className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                    car.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-100 text-gray-700">
+                <th className="p-4 text-left font-semibold">Make</th>
+                <th className="p-4 text-left font-semibold">Model</th>
+                <th className="p-4 text-left font-semibold">Year</th>
+                <th className="p-4 text-left font-semibold">Price/Day</th>
+                <th className="p-4 text-left font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cars.map((car, index) => (
+                <motion.tr
+                  key={car.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="border-t border-gray-200 hover:bg-gray-50 transition"
                 >
-                  {car.available ? 'Available' : 'Rented'}
-                </span>
-              </div>
-            </div>
-          </motion.div>
-        ))}
+                  <td className="p-4 text-gray-600">{car.make}</td>
+                  <td className="p-4 text-gray-600">{car.model}</td>
+                  <td className="p-4 text-gray-600">{car.year}</td>
+                  <td className="p-4 text-gray-600">${car.price_per_day}/day</td>
+                  <td className="p-4">
+                    <span
+                      className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                        car.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {car.available ? 'Available' : 'Rented'}
+                    </span>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </motion.div>
 
       {cars.length === 0 && (
