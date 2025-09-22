@@ -30,6 +30,7 @@ class Customer(BaseModel):
     id: Optional[int] = None
     name: str
     email: str
+    phone: Optional[str] = None
     id_card_url: Optional[str] = None
     driving_license_url: Optional[str] = None
 
@@ -130,6 +131,8 @@ class Database:
                     cursor.execute("ALTER TABLE customers ADD COLUMN id_card_url TEXT")
                 if 'driving_license_url' not in cols:
                     cursor.execute("ALTER TABLE customers ADD COLUMN driving_license_url TEXT")
+                if 'phone' not in cols:
+                    cursor.execute("ALTER TABLE customers ADD COLUMN phone TEXT")
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS rentals (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -335,9 +338,9 @@ class Database:
             with self.conn:
                 cursor = self.conn.cursor()
                 cursor.execute('''
-                    INSERT INTO customers (name, email, id_card_url, driving_license_url)
-                    VALUES (?, ?, ?, ?)
-                ''', (customer.name, customer.email, customer.id_card_url, customer.driving_license_url))
+                    INSERT INTO customers (name, email, phone, id_card_url, driving_license_url)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (customer.name, customer.email, customer.phone, customer.id_card_url, customer.driving_license_url))
                 return cursor.lastrowid
         except sqlite3.IntegrityError as e:
             logger.error(
@@ -354,9 +357,19 @@ class Database:
         try:
             with self.conn:
                 cursor = self.conn.cursor()
-                cursor.execute('SELECT * FROM customers')
+                cursor.execute('SELECT id, name, email, phone, id_card_url, driving_license_url FROM customers')
                 rows = cursor.fetchall()
-                return [Customer(id=row[0], name=row[1], email=row[2], id_card_url=row[3] if len(row) > 3 else None, driving_license_url=row[4] if len(row) > 4 else None) for row in rows]
+                return [
+                    Customer(
+                        id=row[0],
+                        name=row[1],
+                        email=row[2],
+                        phone=row[3],
+                        id_card_url=row[4],
+                        driving_license_url=row[5],
+                    )
+                    for row in rows
+                ]
         except sqlite3.Error as e:
             logger.error(
                 f"Database error in get_all_customers: {str(e)}\n{traceback.format_exc()}")
@@ -368,10 +381,17 @@ class Database:
             with self.conn:
                 cursor = self.conn.cursor()
                 cursor.execute(
-                    'SELECT * FROM customers WHERE id = ?', (customer_id,))
+                    'SELECT id, name, email, phone, id_card_url, driving_license_url FROM customers WHERE id = ?', (customer_id,))
                 row = cursor.fetchone()
                 if row:
-                    return Customer(id=row[0], name=row[1], email=row[2])
+                    return Customer(
+                        id=row[0],
+                        name=row[1],
+                        email=row[2],
+                        phone=row[3],
+                        id_card_url=row[4],
+                        driving_license_url=row[5],
+                    )
                 else:
                     return None
         except sqlite3.Error as e:
@@ -889,6 +909,7 @@ def get_customers():
 def add_customer(
     name: str = Form(...),
     email: str = Form(...),
+    phone: Optional[str] = Form(None),
     id_card: Optional[UploadFile] = File(None),
     driving_license: Optional[UploadFile] = File(None),
 ):
@@ -921,7 +942,7 @@ def add_customer(
                 out.write(driving_license.file.read())
             dl_url = f"/uploads/{filename}"
 
-        cust = Customer(name=name, email=email, id_card_url=id_card_url, driving_license_url=dl_url)
+        cust = Customer(name=name, email=email, phone=phone, id_card_url=id_card_url, driving_license_url=dl_url)
         return db.add_customer(cust)
     except HTTPException:
         raise

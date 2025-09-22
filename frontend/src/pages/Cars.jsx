@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import axios from "axios";
 // eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from 'framer-motion';
-import { PlusIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { motion, AnimatePresence } from "framer-motion";
+import { PlusIcon, XMarkIcon, CheckIcon } from "@heroicons/react/24/outline";
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = "http://localhost:8000";
 
 function Cars() {
   const [cars, setCars] = useState([]);
-  const [formData, setFormData] = useState({ make: '', model: '', year: '', price_per_day: '' });
+  const [formData, setFormData] = useState({
+    make: "",
+    model: "",
+    year: "",
+    price_per_day: "",
+  });
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState(null);
 
@@ -22,8 +27,10 @@ function Cars() {
       setCars(res.data);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch cars. Please try again.');
-      console.error('Error fetching cars:', err);
+      setError(
+        err.response?.data?.detail || "Failed to fetch cars. Please try again."
+      );
+      console.error("Error fetching cars:", err);
     }
   };
 
@@ -40,12 +47,14 @@ function Cars() {
         price_per_day: parseFloat(formData.price_per_day),
       });
       setShowForm(false);
-      setFormData({ make: '', model: '', year: '', price_per_day: '' });
+      setFormData({ make: "", model: "", year: "", price_per_day: "" });
       setError(null);
       fetchCars();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to add car. Please try again.');
-      console.error('Error adding car:', err);
+      setError(
+        err.response?.data?.detail || "Failed to add car. Please try again."
+      );
+      console.error("Error adding car:", err);
     }
   };
 
@@ -70,30 +79,32 @@ function Cars() {
         </motion.div>
       )}
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setShowForm(!showForm)}
-        className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition-colors mb-6"
-      >
-        {showForm ? (
-          <>
-            <XMarkIcon className="h-5 w-5" />
-            Cancel
-          </>
-        ) : (
-          <>
-            <PlusIcon className="h-5 w-5" />
-            Add a Vehicle
-          </>
-        )}
-      </motion.button>
+      <div className="flex justify-end mb-6">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition-colors"
+        >
+          {showForm ? (
+            <>
+              <XMarkIcon className="h-5 w-5" />
+              Cancel
+            </>
+          ) : (
+            <>
+              <PlusIcon className="h-5 w-5" />
+              Add a Vehicle
+            </>
+          )}
+        </motion.button>
+      </div>
 
       <AnimatePresence>
         {showForm && (
           <motion.form
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
             onSubmit={handleSubmit}
@@ -178,18 +189,26 @@ function Cars() {
                   <td className="p-4 text-gray-600">{car.make}</td>
                   <td className="p-4 text-gray-600">{car.model}</td>
                   <td className="p-4 text-gray-600">{car.year}</td>
-                  <td className="p-4 text-gray-600">${car.price_per_day}/day</td>
+                  <td className="p-4 text-gray-600">
+                    ${car.price_per_day}/day
+                  </td>
                   <td className="p-4 space-x-2">
                     <span
                       className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                        car.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        car.available
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {car.available ? 'Available' : 'Rented'}
+                      {car.available ? "Available" : "Rented"}
                     </span>
                     {car.has_pending_maintenance && (
                       <span
-                        title={car.next_maintenance_due ? `Due ${car.next_maintenance_due}` : 'Maintenance pending'}
+                        title={
+                          car.next_maintenance_due
+                            ? `Due ${car.next_maintenance_due}`
+                            : "Maintenance pending"
+                        }
                         className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800"
                       >
                         Maintenance

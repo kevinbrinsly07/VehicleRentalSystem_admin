@@ -141,7 +141,7 @@ function Compliance() {
         <div className="p-4 flex flex-col items-start gap-2">
           <h1 className="text-sm text-gray-700 font-medium">Select Vehicle</h1>
           <select
-            className="border rounded-[5px] px-3 py-2 focus:border-[#000000]"
+            className="border rounded-[10px] px-3 py-2 focus:border-[#000000]"
             value={selectedCarId}
             onChange={(e) => {
               const val = e.target.value;
@@ -162,10 +162,10 @@ function Compliance() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-1 gap-6">
         {/* Insurance */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+        <div className="overflow-hidden">
+          <div className="px-4 py-3 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Insurance</h3>
             <button
               type="button"
@@ -175,51 +175,57 @@ function Compliance() {
               {showInsForm ? 'Close' : 'Add'}
             </button>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-6">
             {showInsForm && (
-              <form onSubmit={addInsurance} className="grid gap-3 bg-white p-4 rounded-xl border">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Add Insurance</span>
-                  <button type="button" onClick={() => setShowInsForm(false)} className="text-xs px-2 py-1 rounded border">Close</button>
-                </div>
-                <input
-                  className="border rounded px-3 py-2"
-                  placeholder="Provider"
-                  value={insForm.provider}
-                  onChange={(e) => setInsForm({ ...insForm, provider: e.target.value })}
-                />
-                <input
-                  className="border rounded px-3 py-2"
-                  placeholder="Policy Number"
-                  value={insForm.policy_number}
-                  onChange={(e) => setInsForm({ ...insForm, policy_number: e.target.value })}
-                />
-                <div className="grid md:grid-cols-2 gap-3">
+              <form onSubmit={addInsurance} className="grid gap-5 bg-white p-5 rounded-[10px] border border-gray-100 md:grid-cols-6">
+                <div className="md:col-span-2">
                   <input
-                    className="border rounded px-3 py-2"
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
+                    placeholder="Provider"
+                    value={insForm.provider}
+                    onChange={(e) => setInsForm({ ...insForm, provider: e.target.value })}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <input
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
+                    placeholder="Policy Number"
+                    value={insForm.policy_number}
+                    onChange={(e) => setInsForm({ ...insForm, policy_number: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <input
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
                     type="date"
                     value={insForm.start_date}
                     onChange={(e) => setInsForm({ ...insForm, start_date: e.target.value })}
                   />
+                </div>
+                <div>
                   <input
-                    className="border rounded px-3 py-2"
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
                     type="date"
                     value={insForm.end_date}
                     onChange={(e) => setInsForm({ ...insForm, end_date: e.target.value })}
                   />
                 </div>
-                <input
-                  className="border rounded px-3 py-2"
-                  placeholder="Coverage"
-                  value={insForm.coverage}
-                  onChange={(e) => setInsForm({ ...insForm, coverage: e.target.value })}
-                />
-                <input
-                  className="border rounded px-3 py-2"
-                  type="file"
-                  onChange={(e) => setInsFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
-                />
-                <button className="bg-gray-900 text-white rounded px-4 py-2 hover:bg-red-600 transition">
+                <div className="md:col-span-3">
+                  <input
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
+                    placeholder="Coverage"
+                    value={insForm.coverage}
+                    onChange={(e) => setInsForm({ ...insForm, coverage: e.target.value })}
+                  />
+                </div>
+                <div className="md:col-span-3">
+                  <input
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
+                    type="file"
+                    onChange={(e) => setInsFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+                  />
+                </div>
+                <button className="md:col-span-6 bg-gray-900 text-white rounded-[10px] px-4 py-3 hover:bg-gray-800 transition">
                   Save Insurance
                 </button>
               </form>
@@ -228,7 +234,7 @@ function Compliance() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+              className="bg-white rounded-[10px] shadow-lg border border-gray-200 overflow-hidden"
             >
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -243,6 +249,11 @@ function Compliance() {
                     </tr>
                   </thead>
                   <tbody>
+                    {insurance.length === 0 && (
+                      <tr className="border-t">
+                        <td className="p-4 text-gray-500" colSpan={6}>No insurance records yet.</td>
+                      </tr>
+                    )}
                     {insurance.map((i) => (
                       <motion.tr
                         key={i.id}
@@ -273,8 +284,8 @@ function Compliance() {
         </div>
 
         {/* Legal Documents */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+        <div className="overflow-hidden">
+          <div className="px-4 py-3 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Legal Documents</h3>
             <button
               type="button"
@@ -284,45 +295,49 @@ function Compliance() {
               {showDocForm ? 'Close' : 'Add'}
             </button>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-6">
             {showDocForm && (
-              <form onSubmit={addDoc} className="grid gap-3 bg-white p-4 rounded-xl border">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Add Legal Document</span>
-                  <button type="button" onClick={() => setShowDocForm(false)} className="text-xs px-2 py-1 rounded border">Close</button>
-                </div>
-                <input
-                  className="border rounded px-3 py-2"
-                  placeholder="Type (e.g. Registration)"
-                  value={docForm.doc_type}
-                  onChange={(e) => setDocForm({ ...docForm, doc_type: e.target.value })}
-                />
-                <input
-                  className="border rounded px-3 py-2"
-                  placeholder="Number"
-                  value={docForm.number}
-                  onChange={(e) => setDocForm({ ...docForm, number: e.target.value })}
-                />
-                <div className="grid md:grid-cols-2 gap-3">
+              <form onSubmit={addDoc} className="grid gap-5 bg-white p-5 rounded-[10px] border border-gray-100 md:grid-cols-6">
+                <div className="md:col-span-2">
                   <input
-                    className="border rounded px-3 py-2"
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
+                    placeholder="Type (e.g. Registration)"
+                    value={docForm.doc_type}
+                    onChange={(e) => setDocForm({ ...docForm, doc_type: e.target.value })}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <input
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
+                    placeholder="Number"
+                    value={docForm.number}
+                    onChange={(e) => setDocForm({ ...docForm, number: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <input
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
                     type="date"
                     value={docForm.issue_date}
                     onChange={(e) => setDocForm({ ...docForm, issue_date: e.target.value })}
                   />
+                </div>
+                <div>
                   <input
-                    className="border rounded px-3 py-2"
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
                     type="date"
                     value={docForm.expiry_date}
                     onChange={(e) => setDocForm({ ...docForm, expiry_date: e.target.value })}
                   />
                 </div>
-                <input
-                  className="border rounded px-3 py-2"
-                  type="file"
-                  onChange={(e) => setDocFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
-                />
-                <button className="bg-gray-900 text-white rounded px-4 py-2 hover:bg-red-600 transition">
+                <div className="md:col-span-3">
+                  <input
+                    className="border border-[#E1E4E8] rounded-[10px] px-3 py-3 w-full"
+                    type="file"
+                    onChange={(e) => setDocFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+                  />
+                </div>
+                <button className="md:col-span-6 bg-gray-900 text-white rounded-[10px] px-4 py-3 hover:bg-gray-800 transition">
                   Save Document
                 </button>
               </form>
@@ -331,7 +346,7 @@ function Compliance() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+              className="bg-white rounded-[10px] shadow-lg border border-gray-200 overflow-hidden"
             >
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -345,6 +360,11 @@ function Compliance() {
                     </tr>
                   </thead>
                   <tbody>
+                    {legalDocs.length === 0 && (
+                      <tr className="border-t">
+                        <td className="p-4 text-gray-500" colSpan={5}>No legal documents yet.</td>
+                      </tr>
+                    )}
                     {legalDocs.map((d) => (
                       <motion.tr
                         key={d.id}
