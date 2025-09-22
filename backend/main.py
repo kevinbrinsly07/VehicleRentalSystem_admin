@@ -65,6 +65,7 @@ class Insurance(BaseModel):
     start_date: str
     end_date: str
     coverage: Optional[str] = None
+    file_url: Optional[str] = None
 
 
 class LegalDocument(BaseModel):
@@ -169,6 +170,11 @@ class Database:
                         FOREIGN KEY (car_id) REFERENCES cars(id)
                     )
                 ''')
+                # Ensure new columns exist on insurances
+                cursor.execute("PRAGMA table_info(insurances)")
+                ins_cols = [r[1] for r in cursor.fetchall()]
+                if 'file_url' not in ins_cols:
+                    cursor.execute("ALTER TABLE insurances ADD COLUMN file_url TEXT")
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS legal_documents (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -244,6 +250,37 @@ class Database:
                 f"Database error in get_all_cars: {str(e)}\n{traceback.format_exc()}")
             raise HTTPException(
                 status_code=500, detail="Failed to retrieve cars due to a server error. Please try again.")
+
+    def get_cars_with_maintenance_summary(self) -> List[dict]:
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute('''
+                    SELECT c.id, c.make, c.model, c.year, c.price_per_day, c.available,
+                           CASE WHEN EXISTS (
+                               SELECT 1 FROM maintenance m
+                               WHERE m.car_id = c.id AND m.status = 'pending'
+                           ) THEN 1 ELSE 0 END AS has_pending,
+                           (
+                               SELECT MIN(m2.due_date) FROM maintenance m2
+                               WHERE m2.car_id = c.id AND m2.status = 'pending'
+                           ) AS next_due
+                    FROM cars c
+                    ORDER BY c.id DESC
+                ''')
+                rows = c.fetchall()
+                result = []
+                for r in rows:
+                    result.append({
+                        'id': r[0], 'make': r[1], 'model': r[2], 'year': r[3],
+                        'price_per_day': r[4], 'available': bool(r[5]),
+                        'has_pending_maintenance': bool(r[6]),
+                        'next_maintenance_due': r[7]
+                    })
+                return result
+        except sqlite3.Error as e:
+            logger.error(f"Database error in get_cars_with_maintenance_summary: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail="Failed to retrieve vehicle inventory.")
 
     def get_car_by_id(self, car_id: int) -> Optional[Car]:
         try:
@@ -555,9 +592,9 @@ class Database:
             with self.conn:
                 c = self.conn.cursor()
                 c.execute('''
-                    INSERT INTO insurances (car_id, provider, policy_number, start_date, end_date, coverage)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (ins.car_id, ins.provider, ins.policy_number, ins.start_date, ins.end_date, ins.coverage))
+                    INSERT INTO insurances (car_id, provider, policy_number, start_date, end_date, coverage, file_url)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (ins.car_id, ins.provider, ins.policy_number, ins.start_date, ins.end_date, ins.coverage, ins.file_url))
                 return c.lastrowid
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format: Use YYYY-MM-DD.")
@@ -571,7 +608,10 @@ class Database:
                 c = self.conn.cursor()
                 c.execute('SELECT * FROM insurances WHERE car_id = ? ORDER BY end_date DESC', (car_id,))
                 rows = c.fetchall()
-                return [Insurance(id=r[0], car_id=r[1], provider=r[2], policy_number=r[3], start_date=r[4], end_date=r[5], coverage=r[6]) for r in rows]
+                # file_url is at index 7 if present, else None
+                return [Insurance(
+                    id=r[0], car_id=r[1], provider=r[2], policy_number=r[3], start_date=r[4], end_date=r[5], coverage=r[6], file_url=r[7] if len(r) > 7 else None
+                ) for r in rows]
         except sqlite3.Error as e:
             logger.error(f"Database error in get_insurance_by_car: {str(e)}\n{traceback.format_exc()}")
             raise HTTPException(status_code=500, detail="Failed to retrieve insurance records.")
@@ -624,6 +664,19 @@ class Database:
         except sqlite3.Error as e:
             logger.error(f"Database error in add_maintenance: {str(e)}\n{traceback.format_exc()}")
             raise HTTPException(status_code=500, detail="Failed to add maintenance record.")
+
+    def update_maintenance_status(self, maint_id: int, status: str):
+        try:
+            if status not in ("pending", "completed"):
+                raise HTTPException(status_code=400, detail="status must be 'pending' or 'completed'")
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute('UPDATE maintenance SET status = ? WHERE id = ?', (status, maint_id))
+                if c.rowcount == 0:
+                    raise HTTPException(status_code=404, detail=f"Maintenance ID {maint_id} not found")
+        except sqlite3.Error as e:
+            logger.error(f"Database error in update_maintenance_status: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail="Failed to update maintenance record.")
 
     def get_upcoming_maintenance(self, days_ahead: int = 30) -> List[dict]:
         try:
@@ -779,6 +832,18 @@ def get_cars():
             f"Error in /cars endpoint: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=500, detail="Unable to retrieve cars due to a server error. Please try again.")
+
+
+# New endpoint: /cars/inventory
+@app.get("/cars/inventory", response_model=List[dict])
+def get_cars_inventory():
+    try:
+        return db.get_cars_with_maintenance_summary()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in /cars/inventory endpoint: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Unable to retrieve vehicle inventory.")
 
 
 @app.get("/cars/available", response_model=List[Car])
@@ -1085,13 +1150,40 @@ def get_invoice(rental_id: int):
 
 
 @app.post('/cars/{car_id}/insurance', response_model=int)
-def create_insurance(car_id: int, ins: Insurance):
+def create_insurance(
+    car_id: int,
+    provider: str = Form(...),
+    policy_number: str = Form(...),
+    start_date: str = Form(...),
+    end_date: str = Form(...),
+    coverage: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+):
     try:
-        if car_id != ins.car_id:
-            raise HTTPException(status_code=400, detail='car_id mismatch')
         if not db.get_car_by_id(car_id):
-            raise HTTPException(
-                status_code=404, detail=f'Car {car_id} not found')
+            raise HTTPException(status_code=404, detail=f'Car {car_id} not found')
+
+        # Save uploaded file if present
+        file_url = None
+        if file is not None and file.filename:
+            os.makedirs('uploads/insurances', exist_ok=True)
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+            safe_name = file.filename.replace('/', '_').replace('\\', '_')
+            rel_path = f"insurances/{timestamp}_{safe_name}"
+            abs_path = os.path.join('uploads', rel_path)
+            with open(abs_path, 'wb') as out:
+                out.write(file.file.read())
+            file_url = f"/uploads/{rel_path}"
+
+        ins = Insurance(
+            car_id=car_id,
+            provider=provider,
+            policy_number=policy_number,
+            start_date=start_date,
+            end_date=end_date,
+            coverage=coverage,
+            file_url=file_url,
+        )
         return db.add_insurance(ins)
     except HTTPException:
         raise
@@ -1120,12 +1212,38 @@ def list_insurance(car_id: int):
 # --- Legal Docs & Maintenance & Users endpoints ---
 
 @app.post('/cars/{car_id}/legal-docs', response_model=int)
-def create_legal_doc(car_id: int, doc: LegalDocument):
+def create_legal_doc(
+    car_id: int,
+    doc_type: str = Form(...),
+    number: Optional[str] = Form(None),
+    issue_date: Optional[str] = Form(None),
+    expiry_date: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+):
     try:
-        if car_id != doc.car_id:
-            raise HTTPException(status_code=400, detail='car_id mismatch')
         if not db.get_car_by_id(car_id):
             raise HTTPException(status_code=404, detail=f'Car {car_id} not found')
+
+        # Save uploaded file if present
+        file_url = None
+        if file is not None and file.filename:
+            os.makedirs('uploads/legal_docs', exist_ok=True)
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+            safe_name = file.filename.replace('/', '_').replace('\\', '_')
+            rel_path = f"legal_docs/{timestamp}_{safe_name}"
+            abs_path = os.path.join('uploads', rel_path)
+            with open(abs_path, 'wb') as out:
+                out.write(file.file.read())
+            file_url = f"/uploads/{rel_path}"
+
+        doc = LegalDocument(
+            car_id=car_id,
+            doc_type=doc_type,
+            number=number,
+            issue_date=issue_date,
+            expiry_date=expiry_date,
+            file_url=file_url,
+        )
         return db.add_legal_doc(doc)
     except HTTPException:
         raise
@@ -1166,6 +1284,23 @@ def upcoming_maintenance(days: int = Query(30, ge=1, le=365)):
     except Exception as e:
         logger.error(f"Error in GET /maintenance/upcoming: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail='Failed to retrieve upcoming maintenance')
+
+# --- Maintenance Status Update Endpoint ---
+from pydantic import BaseModel
+
+class MaintenanceStatusUpdate(BaseModel):
+    status: str
+
+@app.put('/maintenance/{maint_id}')
+def update_maintenance_status(maint_id: int, payload: MaintenanceStatusUpdate):
+    try:
+        db.update_maintenance_status(maint_id, payload.status)
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in PUT /maintenance/{maint_id}: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail='Failed to update maintenance record')
 
 @app.post('/users', response_model=int)
 def create_user(u: User):

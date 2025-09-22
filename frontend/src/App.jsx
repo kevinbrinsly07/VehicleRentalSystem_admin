@@ -22,8 +22,10 @@ import Cars from "./pages/Cars.jsx";
 import Customers from "./pages/Customers.jsx";
 import Rentals from "./pages/Rentals.jsx";
 import Invoices from "./pages/Invoices.jsx";
+import MaintenancePage from "./pages/Maintenance.jsx";
+import CompliancePage from "./pages/Compliance.jsx";
 
-
+// USERS PAGE
 function UsersPage() {
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({
@@ -32,14 +34,17 @@ function UsersPage() {
     role: "staff",
     active: true,
   });
+
   const load = async () => {
     const res = await fetch("http://localhost:8000/users");
     const data = await res.json();
     setUsers(data);
   };
+
   useEffect(() => {
     load();
   }, []);
+
   const submit = async (e) => {
     e.preventDefault();
     const res = await fetch("http://localhost:8000/users", {
@@ -52,6 +57,7 @@ function UsersPage() {
       load();
     }
   };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold">User Management</h2>
@@ -128,434 +134,7 @@ function UsersPage() {
   );
 }
 
-function MaintenancePage() {
-  const [days, setDays] = useState(30);
-  const [items, setItems] = useState([]);
-  const [form, setForm] = useState({
-    car_id: "",
-    maint_type: "Oil Change",
-    due_date: "",
-    status: "pending",
-    cost: 0,
-    notes: "",
-  });
-  const load = async () => {
-    const res = await fetch(
-      `http://localhost:8000/maintenance/upcoming?days=${days}`
-    );
-    const data = await res.json();
-    setItems(data);
-  };
-  useEffect(() => {
-    load();
-  }, [days]);
-  const submit = async (e) => {
-    e.preventDefault();
-    const res = await fetch("http://localhost:8000/maintenance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        car_id: Number(form.car_id),
-        cost: Number(form.cost),
-      }),
-    });
-    if (res.ok) {
-      setForm({
-        car_id: "",
-        maint_type: "Oil Change",
-        due_date: "",
-        status: "pending",
-        cost: 0,
-        notes: "",
-      });
-      load();
-    }
-  };
-  return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold">Vehicle Maintenance</h2>
-      <form
-        onSubmit={submit}
-        className="grid gap-3 md:grid-cols-6 bg-white p-4 rounded-xl border"
-      >
-        <input
-          className="border rounded px-3 py-2"
-          placeholder="Car ID"
-          value={form.car_id}
-          onChange={(e) => setForm({ ...form, car_id: e.target.value })}
-          required
-        />
-        <input
-          className="border rounded px-3 py-2"
-          placeholder="Type (e.g. Oil Change)"
-          value={form.maint_type}
-          onChange={(e) => setForm({ ...form, maint_type: e.target.value })}
-        />
-        <input
-          className="border rounded px-3 py-2"
-          type="date"
-          value={form.due_date}
-          onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-          required
-        />
-        <select
-          className="border rounded px-3 py-2"
-          value={form.status}
-          onChange={(e) => setForm({ ...form, status: e.target.value })}
-        >
-          <option value="pending">pending</option>
-          <option value="completed">completed</option>
-        </select>
-        <input
-          className="border rounded px-3 py-2"
-          type="number"
-          step="0.01"
-          placeholder="Cost"
-          value={form.cost}
-          onChange={(e) => setForm({ ...form, cost: e.target.value })}
-        />
-        <input
-          className="border rounded px-3 py-2 md:col-span-6"
-          placeholder="Notes"
-          value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-        />
-        <button className="md:col-span-6 bg-gray-900 text-white rounded px-4 py-2 hover:bg-red-600 transition">
-          Add Maintenance
-        </button>
-      </form>
-
-      <div className="flex items-center gap-3">
-        <label className="text-sm text-gray-600">Show upcoming for</label>
-        <select
-          className="border rounded px-3 py-2"
-          value={days}
-          onChange={(e) => setDays(Number(e.target.value))}
-        >
-          {[7, 14, 30, 60, 90].map((d) => (
-            <option key={d} value={d}>
-              {d} days
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="overflow-x-auto bg-white rounded-xl border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left p-3">Due Date</th>
-              <th className="text-left p-3">Car</th>
-              <th className="text-left p-3">Type</th>
-              <th className="text-left p-3">Status</th>
-              <th className="text-left p-3">Cost</th>
-              <th className="text-left p-3">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it) => (
-              <tr key={it.id} className="border-t">
-                <td className="p-3">{it.due_date}</td>
-                <td className="p-3">
-                  {it.car.make} {it.car.model} ({it.car.year})
-                </td>
-                <td className="p-3">{it.maint_type}</td>
-                <td className="p-3">{it.status}</td>
-                <td className="p-3">{it.cost ?? 0}</td>
-                <td className="p-3">{it.notes ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function CompliancePage() {
-  const [carId, setCarId] = useState("");
-  const [insurance, setInsurance] = useState([]);
-  const [legalDocs, setLegalDocs] = useState([]);
-  const [insForm, setInsForm] = useState({
-    car_id: "",
-    provider: "",
-    policy_number: "",
-    start_date: "",
-    end_date: "",
-    coverage: "",
-  });
-  const [docForm, setDocForm] = useState({
-    car_id: "",
-    doc_type: "Registration",
-    number: "",
-    issue_date: "",
-    expiry_date: "",
-    file_url: "",
-  });
-
-  const load = async (cid) => {
-    if (!cid) return;
-    const [insRes, docRes] = await Promise.all([
-      fetch(`http://localhost:8000/cars/${cid}/insurance`),
-      fetch(`http://localhost:8000/cars/${cid}/legal-docs`),
-    ]);
-    setInsurance(await insRes.json());
-    setLegalDocs(await docRes.json());
-  };
-
-  const search = async (e) => {
-    e.preventDefault();
-    await load(carId);
-  };
-
-  const addInsurance = async (e) => {
-    e.preventDefault();
-    const payload = { ...insForm, car_id: Number(insForm.car_id) };
-    const res = await fetch(
-      `http://localhost:8000/cars/${payload.car_id}/insurance`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }
-    );
-    if (res.ok) {
-      setInsForm({
-        car_id: insForm.car_id,
-        provider: "",
-        policy_number: "",
-        start_date: "",
-        end_date: "",
-        coverage: "",
-      });
-      load(payload.car_id);
-    }
-  };
-
-  const addDoc = async (e) => {
-    e.preventDefault();
-    const payload = { ...docForm, car_id: Number(docForm.car_id) };
-    const res = await fetch(
-      `http://localhost:8000/cars/${payload.car_id}/legal-docs`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }
-    );
-    if (res.ok) {
-      setDocForm({
-        car_id: docForm.car_id,
-        doc_type: "Registration",
-        number: "",
-        issue_date: "",
-        expiry_date: "",
-        file_url: "",
-      });
-      load(payload.car_id);
-    }
-  };
-
-  return (
-    <div className="space-y-8">
-      <h2 className="text-2xl font-semibold">Insurance & Legal Documents</h2>
-
-      <form onSubmit={search} className="flex gap-3 items-end">
-        <div>
-          <label className="text-xs text-gray-600">Car ID</label>
-          <input
-            className="border rounded px-3 py-2 ml-2"
-            placeholder="e.g. 1"
-            value={carId}
-            onChange={(e) => {
-              setCarId(e.target.value);
-              setInsForm((f) => ({ ...f, car_id: e.target.value }));
-              setDocForm((f) => ({ ...f, car_id: e.target.value }));
-            }}
-          />
-        </div>
-        <button className="bg-gray-900 text-white rounded px-4 py-2 hover:bg-red-600 transition">
-          Load
-        </button>
-      </form>
-
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Insurance */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Insurance</h3>
-          <form
-            onSubmit={addInsurance}
-            className="grid gap-3 bg-white p-4 rounded-xl border"
-          >
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Provider"
-              value={insForm.provider}
-              onChange={(e) =>
-                setInsForm({ ...insForm, provider: e.target.value })
-              }
-            />
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Policy Number"
-              value={insForm.policy_number}
-              onChange={(e) =>
-                setInsForm({ ...insForm, policy_number: e.target.value })
-              }
-            />
-            <div className="grid md:grid-cols-2 gap-3">
-              <input
-                className="border rounded px-3 py-2"
-                type="date"
-                value={insForm.start_date}
-                onChange={(e) =>
-                  setInsForm({ ...insForm, start_date: e.target.value })
-                }
-              />
-              <input
-                className="border rounded px-3 py-2"
-                type="date"
-                value={insForm.end_date}
-                onChange={(e) =>
-                  setInsForm({ ...insForm, end_date: e.target.value })
-                }
-              />
-            </div>
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Coverage"
-              value={insForm.coverage}
-              onChange={(e) =>
-                setInsForm({ ...insForm, coverage: e.target.value })
-              }
-            />
-            <button className="bg-gray-900 text-white rounded px-4 py-2 hover:bg-red-600 transition">
-              Add Insurance
-            </button>
-          </form>
-          <div className="overflow-x-auto bg-white rounded-xl border">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="text-left p-3">Provider</th>
-                  <th className="text-left p-3">Policy</th>
-                  <th className="text-left p-3">Start</th>
-                  <th className="text-left p-3">End</th>
-                  <th className="text-left p-3">Coverage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {insurance.map((i) => (
-                  <tr key={i.id} className="border-t">
-                    <td className="p-3">{i.provider}</td>
-                    <td className="p-3">{i.policy_number}</td>
-                    <td className="p-3">{i.start_date}</td>
-                    <td className="p-3">{i.end_date}</td>
-                    <td className="p-3">{i.coverage ?? "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Legal Documents */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Legal Documents</h3>
-          <form
-            onSubmit={addDoc}
-            className="grid gap-3 bg-white p-4 rounded-xl border"
-          >
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Type (e.g. Registration)"
-              value={docForm.doc_type}
-              onChange={(e) =>
-                setDocForm({ ...docForm, doc_type: e.target.value })
-              }
-            />
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="Number"
-              value={docForm.number}
-              onChange={(e) =>
-                setDocForm({ ...docForm, number: e.target.value })
-              }
-            />
-            <div className="grid md:grid-cols-2 gap-3">
-              <input
-                className="border rounded px-3 py-2"
-                type="date"
-                value={docForm.issue_date}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, issue_date: e.target.value })
-                }
-              />
-              <input
-                className="border rounded px-3 py-2"
-                type="date"
-                value={docForm.expiry_date}
-                onChange={(e) =>
-                  setDocForm({ ...docForm, expiry_date: e.target.value })
-                }
-              />
-            </div>
-            <input
-              className="border rounded px-3 py-2"
-              placeholder="File URL (optional)"
-              value={docForm.file_url}
-              onChange={(e) =>
-                setDocForm({ ...docForm, file_url: e.target.value })
-              }
-            />
-            <button className="bg-gray-900 text-white rounded px-4 py-2 hover:bg-red-600 transition">
-              Add Document
-            </button>
-          </form>
-          <div className="overflow-x-auto bg-white rounded-xl border">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="text-left p-3">Type</th>
-                  <th className="text-left p-3">Number</th>
-                  <th className="text-left p-3">Issue</th>
-                  <th className="text-left p-3">Expiry</th>
-                  <th className="text-left p-3">File</th>
-                </tr>
-              </thead>
-              <tbody>
-                {legalDocs.map((d) => (
-                  <tr key={d.id} className="border-t">
-                    <td className="p-3">{d.doc_type}</td>
-                    <td className="p-3">{d.number ?? "-"}</td>
-                    <td className="p-3">{d.issue_date ?? "-"}</td>
-                    <td className="p-3">{d.expiry_date ?? "-"}</td>
-                    <td className="p-3">
-                      {d.file_url ? (
-                        <a
-                          className="text-blue-600 underline"
-                          href={d.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// APP CONTENT
 function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState({
@@ -583,6 +162,7 @@ function AppContent() {
     };
     fetchStats();
   }, []);
+
   const location = useLocation();
 
   const navItems = [
@@ -600,22 +180,10 @@ function AppContent() {
     navItems.find((item) => item.path === location.pathname) || navItems[0];
 
   const cardColors = [
-    {
-      bg: "bg-gradient-to-br from-white to-gray-100",
-      icon: "text-gray-800",
-    },
-    {
-      bg: "bg-gradient-to-br from-white to-gray-100",
-      icon: "text-gray-800",
-    },
-    {
-      bg: "bg-gradient-to-br from-white to-gray-100",
-      icon: "text-gray-800",
-    },
-    {
-      bg: "bg-gradient-to-br from-white to-gray-100",
-      icon: "text-gray-800",
-    },
+    { bg: "bg-gradient-to-br from-white to-gray-100", icon: "text-gray-800" },
+    { bg: "bg-gradient-to-br from-white to-gray-100", icon: "text-gray-800" },
+    { bg: "bg-gradient-to-br from-white to-gray-100", icon: "text-gray-800" },
+    { bg: "bg-gradient-to-br from-white to-gray-100", icon: "text-gray-800" },
   ];
 
   return (
@@ -625,7 +193,7 @@ function AppContent() {
         className="md:hidden fixed top-4 left-4 z-50 rounded-md p-2 bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         aria-label="Toggle menu"
-     >
+      >
         {mobileMenuOpen ? (
           <XMarkIcon className="h-6 w-6" />
         ) : (
@@ -823,33 +391,48 @@ function AppContent() {
                         <div className="rounded-full px-4 py-2 text-sm bg-gray-200 text-gray-800">
                           Total Revenue:{" "}
                           <span className="font-semibold">
-                            LKR {stats.revenue?.toLocaleString?.() ?? stats.revenue}
+                            LKR{" "}
+                            {stats.revenue?.toLocaleString?.() ?? stats.revenue}
                           </span>
                         </div>
                       </div>
                       <div className="mt-8 grid gap-6 md:grid-cols-3">
                         <div className="p-4 rounded-xl bg-white border border-gray-200">
-                          <div className="text-sm text-gray-500">Insurance expiring (30 days)</div>
-                          <div className="text-2xl font-bold text-red-500">{stats.insurance_expiring ?? 0}</div>
+                          <div className="text-sm text-gray-500">
+                            Insurance expiring (30 days)
+                          </div>
+                          <div className="text-2xl font-bold text-red-500">
+                            {stats.insurance_expiring ?? 0}
+                          </div>
                         </div>
                         <div className="p-4 rounded-xl bg-white border border-gray-200">
-                          <div className="text-sm text-gray-500">Legal docs expiring (30 days)</div>
-                          <div className="text-2xl font-bold text-red-500">{stats.docs_expiring ?? 0}</div>
+                          <div className="text-sm text-gray-500">
+                            Legal docs expiring (30 days)
+                          </div>
+                          <div className="text-2xl font-bold text-red-500">
+                            {stats.docs_expiring ?? 0}
+                          </div>
                         </div>
                         <div className="p-4 rounded-xl bg-white border border-gray-200">
-                          <div className="text-sm text-gray-500">Maintenance due (30 days)</div>
-                          <div className="text-2xl font-bold text-red-500">{stats.maintenance_due ?? 0}</div>
+                          <div className="text-sm text-gray-500">
+                            Maintenance due (30 days)
+                          </div>
+                          <div className="text-2xl font-bold text-red-500">
+                            {stats.maintenance_due ?? 0}
+                          </div>
                         </div>
                       </div>
                       <div className="mt-6 flex justify-center">
                         <div className="rounded-full px-4 py-2 text-sm bg-gray-100 text-gray-800">
                           Active Users:{" "}
-                          <span className="font-semibold">{stats.users_active ?? 0}</span>
+                          <span className="font-semibold">
+                            {stats.users_active ?? 0}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 px-4">
+                    {/* <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 px-4">
                       {[
                         {
                           title: "Vehicles",
@@ -885,12 +468,16 @@ function AppContent() {
                             <item.icon
                               className={`h-8 w-8 ${cardColors[index].icon} mb-4 group-hover:text-red-500`}
                             />
-                            <h2 className="text-xl font-semibold mb-2 group-hover:text-red-500">{item.title}</h2>
-                            <p className="text-sm text-gray-700 group-hover:text-red-500">{item.desc}</p>
+                            <h2 className="text-xl font-semibold mb-2 group-hover:text-red-500">
+                              {item.title}
+                            </h2>
+                            <p className="text-sm text-gray-700 group-hover:text-red-500">
+                              {item.desc}
+                            </p>
                           </motion.div>
                         </Link>
                       ))}
-                    </div>
+                    </div> */}
                   </motion.div>
                 }
               />
@@ -902,6 +489,7 @@ function AppContent() {
   );
 }
 
+// MAIN APP
 function App() {
   return (
     <Router>

@@ -145,17 +145,17 @@ function Invoices() {
     }
   };
 
-  const fetchInvoice = async () => {
-    if (!selectedRentalId) return;
-    try {
-      const res = await axios.get(`${API_BASE}/rentals/${selectedRentalId}/invoice`);
-      setInvoice(res.data);
-      setError(null);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to generate invoice. Please try again.');
-      console.error('Error fetching invoice:', err);
-    }
-  };
+  // const fetchInvoice = async () => {
+  //   if (!selectedRentalId) return;
+  //   try {
+  //     const res = await axios.get(`${API_BASE}/rentals/${selectedRentalId}/invoice`);
+  //     setInvoice(res.data);
+  //     setError(null);
+  //   } catch (err) {
+  //     setError(err.response?.data?.detail || 'Failed to generate invoice. Please try again.');
+  //     console.error('Error fetching invoice:', err);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

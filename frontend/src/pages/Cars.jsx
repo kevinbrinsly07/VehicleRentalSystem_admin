@@ -3,7 +3,6 @@ import axios from 'axios';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlusIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import carImg from "../assets/car.jpeg"
 
 const API_BASE = 'http://localhost:8000';
 
@@ -19,7 +18,7 @@ function Cars() {
 
   const fetchCars = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/cars`);
+      const res = await axios.get(`${API_BASE}/cars/inventory`);
       setCars(res.data);
       setError(null);
     } catch (err) {
@@ -180,7 +179,7 @@ function Cars() {
                   <td className="p-4 text-gray-600">{car.model}</td>
                   <td className="p-4 text-gray-600">{car.year}</td>
                   <td className="p-4 text-gray-600">${car.price_per_day}/day</td>
-                  <td className="p-4">
+                  <td className="p-4 space-x-2">
                     <span
                       className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                         car.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -188,6 +187,14 @@ function Cars() {
                     >
                       {car.available ? 'Available' : 'Rented'}
                     </span>
+                    {car.has_pending_maintenance && (
+                      <span
+                        title={car.next_maintenance_due ? `Due ${car.next_maintenance_due}` : 'Maintenance pending'}
+                        className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800"
+                      >
+                        Maintenance
+                      </span>
+                    )}
                   </td>
                 </motion.tr>
               ))}
