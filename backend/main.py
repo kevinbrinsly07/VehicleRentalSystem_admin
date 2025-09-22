@@ -7,6 +7,10 @@ import traceback
 from datetime import datetime, timedelta
 import logging
 
+import secrets
+import hashlib
+from typing import Tuple
+
 import os
 from fastapi.staticfiles import StaticFiles
 
@@ -96,12 +100,15 @@ class User(BaseModel):
     role: str = "staff"  # admin | manager | staff
     active: bool = True
 
+    password: Optional[str] = None  # write-only on create
+
 
 # Database class
 class Database:
     def __init__(self, db_name='car_rental.db'):
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.create_tables()
+        self._bootstrap_admin()
 
     def create_tables(self):
         try:
@@ -211,11 +218,56 @@ class Database:
                         active BOOLEAN NOT NULL DEFAULT 1
                     )
                 ''')
+                # Ensure password & sessions support
+                cursor.execute("PRAGMA table_info(users)")
+                user_cols = [r[1] for r in cursor.fetchall()]
+                if 'password_hash' not in user_cols:
+                    cursor.execute("ALTER TABLE users ADD COLUMN password_hash TEXT")
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        token TEXT NOT NULL UNIQUE,
+                        expires_at TEXT NOT NULL,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                ''')
         except sqlite3.Error as e:
             logger.error(
                 f"Error creating tables: {str(e)}\n{traceback.format_exc()}")
             raise HTTPException(
                 status_code=500, detail="Unable to initialize database. Please try again later.")
+
+    def _hash_password(self, password: str) -> str:
+        salt = secrets.token_hex(16)
+        dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), bytes.fromhex(salt), 100_000)
+        return f"{salt}${dk.hex()}"
+
+    def _verify_password(self, password: str, stored: str) -> bool:
+        try:
+            salt, hexhash = stored.split('$', 1)
+            dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), bytes.fromhex(salt), 100_000)
+            return dk.hex() == hexhash
+        except Exception:
+            return False
+
+    def _bootstrap_admin(self):
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute("SELECT id FROM users WHERE role='admin' LIMIT 1")
+                row = c.fetchone()
+                if row:
+                    return
+                # create default admin
+                name = 'Administrator'
+                email = 'admin@local'
+                role = 'admin'
+                password_hash = self._hash_password('admin123')
+                c.execute("INSERT INTO users (name, email, role, active, password_hash) VALUES (?, ?, ?, ?, ?)", (name, email, role, 1, password_hash))
+                logger.info("Default admin created: admin@local / admin123")
+        except sqlite3.Error as e:
+            logger.error(f"Error bootstrapping admin: {str(e)}\n{traceback.format_exc()}")
 
     def add_car(self, car: Car) -> int:
         try:
@@ -731,10 +783,11 @@ class Database:
                 raise HTTPException(status_code=400, detail="name and email are required")
             with self.conn:
                 c = self.conn.cursor()
+                password_hash = self._hash_password(u.password or secrets.token_urlsafe(12))
                 c.execute('''
-                    INSERT INTO users (name, email, role, active)
-                    VALUES (?, ?, ?, ?)
-                ''', (u.name, u.email, u.role, int(u.active)))
+                    INSERT INTO users (name, email, role, active, password_hash)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (u.name, u.email, u.role, int(u.active), password_hash))
                 return c.lastrowid
         except sqlite3.IntegrityError:
             raise HTTPException(status_code=400, detail="User with this email already exists")
@@ -752,6 +805,45 @@ class Database:
         except sqlite3.Error as e:
             logger.error(f"Database error in get_users: {str(e)}\n{traceback.format_exc()}")
             raise HTTPException(status_code=500, detail="Failed to retrieve users.")
+
+    def create_session(self, user_id: int, hours: int = 24) -> Tuple[str, str]:
+        token = secrets.token_urlsafe(32)
+        exp = (datetime.now() + timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
+        with self.conn:
+            c = self.conn.cursor()
+            c.execute('INSERT INTO sessions (user_id, token, expires_at) VALUES (?, ?, ?)', (user_id, token, exp))
+        return token, exp
+
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute('SELECT id, name, email, role, active, password_hash FROM users WHERE email = ?', (email,))
+                r = c.fetchone()
+                if r:
+                    return User(id=r[0], name=r[1], email=r[2], role=r[3], active=bool(r[4]))
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"Database error in get_user_by_email: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail='Failed to lookup user')
+
+    def get_user_by_session(self, token: str) -> Optional[User]:
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                c.execute('''
+                    SELECT u.id, u.name, u.email, u.role, u.active
+                    FROM sessions s JOIN users u ON s.user_id = u.id
+                    WHERE s.token = ? AND s.expires_at > ?
+                ''', (token, now))
+                r = c.fetchone()
+                if r:
+                    return User(id=r[0], name=r[1], email=r[2], role=r[3], active=bool(r[4]))
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"Database error in get_user_by_session: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail='Failed to validate session')
 
     def check_car_availability(self, car_id: int, start_date: str, end_date: str) -> bool:
         try:
@@ -839,6 +931,61 @@ app.add_middleware(
 )
 
 db = Database()
+
+from fastapi import Depends, Header
+
+# --- Auth dependencies & routes ---
+
+def require_admin(authorization: Optional[str] = Header(None)) -> User:
+    if not authorization or not authorization.lower().startswith('bearer '):
+        raise HTTPException(status_code=401, detail='Missing or invalid Authorization header')
+    token = authorization.split(' ', 1)[1].strip()
+    user = db.get_user_by_session(token)
+    if not user:
+        raise HTTPException(status_code=401, detail='Invalid or expired session')
+    if user.role != 'admin' or not user.active:
+        raise HTTPException(status_code=403, detail='Admin access required')
+    return user
+
+class LoginPayload(BaseModel):
+    email: str
+    password: str
+
+@app.post('/auth/login')
+def login(payload: LoginPayload):
+    try:
+        with db.conn:
+            c = db.conn.cursor()
+            c.execute('SELECT id, name, email, role, active, password_hash FROM users WHERE email = ?', (payload.email,))
+            row = c.fetchone()
+            if not row:
+                raise HTTPException(status_code=401, detail='Invalid credentials')
+            user_id, name, email, role, active, password_hash = row
+            # verify password
+            if not db._verify_password(payload.password, password_hash or ''):
+                raise HTTPException(status_code=401, detail='Invalid credentials')
+            if not active:
+                raise HTTPException(status_code=403, detail='User is inactive')
+            token, exp = db.create_session(user_id)
+            return {"token": token, "expires_at": exp, "user": {"id": user_id, "name": name, "email": email, "role": role}}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in /auth/login: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail='Login failed')
+
+@app.post('/auth/logout')
+def logout(authorization: Optional[str] = Header(None)):
+    try:
+        if authorization and authorization.lower().startswith('bearer '):
+            token = authorization.split(' ', 1)[1].strip()
+            with db.conn:
+                c = db.conn.cursor()
+                c.execute('DELETE FROM sessions WHERE token = ?', (token,))
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"Error in /auth/logout: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail='Logout failed')
 
 
 @app.get("/cars", response_model=List[Car])
@@ -1324,7 +1471,7 @@ def update_maintenance_status(maint_id: int, payload: MaintenanceStatusUpdate):
         raise HTTPException(status_code=500, detail='Failed to update maintenance record')
 
 @app.post('/users', response_model=int)
-def create_user(u: User):
+def create_user(u: User, _admin: User = Depends(require_admin)):
     try:
         return db.add_user(u)
     except HTTPException:
@@ -1334,7 +1481,7 @@ def create_user(u: User):
         raise HTTPException(status_code=500, detail='Failed to add user')
 
 @app.get('/users', response_model=List[User])
-def list_users():
+def list_users(_admin: User = Depends(require_admin)):
     try:
         return db.get_users()
     except HTTPException:

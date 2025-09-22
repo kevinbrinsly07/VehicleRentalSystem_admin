@@ -13,6 +13,8 @@ export default function Users() {
     email: "",
     role: "staff",
     active: true,
+    password: "",
+    confirm: "",
   });
 
   const load = async () => {
@@ -33,10 +35,25 @@ export default function Users() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      if (!form.password || form.password.length < 6) {
+        alert("Password must be at least 6 characters.");
+        return;
+      }
+      if (form.password !== form.confirm) {
+        alert("Passwords do not match.");
+        return;
+      }
+      const payload = {
+        name: form.name,
+        email: form.email,
+        role: form.role,
+        active: form.active,
+        password: form.password,
+      };
       const res = await fetch(`${API_BASE}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const text = await res.text();
       if (!res.ok) {
@@ -49,7 +66,7 @@ export default function Users() {
         }
         return;
       }
-      setForm({ name: "", email: "", role: "staff", active: true });
+      setForm({ name: "", email: "", role: "staff", active: true, password: "", confirm: "" });
       setShowForm(false);
       await load();
     } catch (err) {
@@ -100,6 +117,22 @@ export default function Users() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+              <input
+                className="border border-[#E1E4E8] rounded-[10px] px-3 py-4 md:col-span-2"
+                placeholder="Password"
+                type="password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+              <input
+                className="border border-[#E1E4E8] rounded-[10px] px-3 py-4 md:col-span-2"
+                placeholder="Confirm Password"
+                type="password"
+                value={form.confirm}
+                onChange={(e) => setForm({ ...form, confirm: e.target.value })}
                 required
               />
               <select
