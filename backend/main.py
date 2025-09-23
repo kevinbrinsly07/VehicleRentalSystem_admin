@@ -1,18 +1,25 @@
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 import sqlite3
 import traceback
 from datetime import datetime, timedelta
 import logging
 
+import json
+
 import secrets
 import hashlib
 from typing import Tuple
 
+
 import os
 from fastapi.staticfiles import StaticFiles
+
+# Helper to sanitize filenames for uploads
+def _safe_filename(fname: str) -> str:
+    return fname.replace("/", "_").replace("\\", "_")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -232,6 +239,47 @@ class Database:
                         FOREIGN KEY (user_id) REFERENCES users(id)
                     )
                 ''')
+                # Settings (single-row JSON blob)
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS settings (
+                        id INTEGER PRIMARY KEY,
+                        data TEXT NOT NULL
+                    )
+                ''')
+                # Ensure one row exists with defaults
+                cursor.execute('SELECT COUNT(1) FROM settings WHERE id = 1')
+                if cursor.fetchone()[0] == 0:
+                    default_settings = {
+                        "general": {
+                            "companyName": "Akalanka Enterprises",
+                            "email": "brinslykevin@gmail.com",
+                            "phone": "+94 72 081 5252",
+                            "address": "Marawila, Sri Lanka",
+                            "currency": "LKR",
+                            "language": "en",
+                        },
+                        "branding": {
+                            "accent": "#2563EB",
+                            "logoUrl": "/logo.jpg",
+                            "footerNote": "This is a system-generated document.",
+                        },
+                        "pdf": {
+                            "quoteValidityDays": 14,
+                            "showZebraRows": True,
+                            "showTotalsCard": True,
+                            "headerBadge": "QUOTATION",
+                            "notesDefault": "This quotation is valid for 14 days. Prices may change based on availability and final requirements.",
+                        },
+                        "notifications": {
+                            "emailOnInvoice": True,
+                            "emailOnRentalStart": False,
+                            "emailOnRentalEnd": True,
+                        },
+                    }
+                    cursor.execute(
+                        'INSERT INTO settings (id, data) VALUES (1, ?)',
+                        (json.dumps(default_settings),)
+                    )
         except sqlite3.Error as e:
             logger.error(
                 f"Error creating tables: {str(e)}\n{traceback.format_exc()}")
@@ -932,6 +980,29 @@ class Database:
             logger.error(f"Database error in get_stats: {str(e)}\n{traceback.format_exc()}")
             raise HTTPException(status_code=500, detail="Failed to compute stats due to a server error. Please try again.")
 
+    def get_settings(self) -> Dict[str, Any]:
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute('SELECT data FROM settings WHERE id = 1')
+                row = c.fetchone()
+                return json.loads(row[0]) if row and row[0] else {}
+        except sqlite3.Error as e:
+            logger.error(f"Database error in get_settings: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail="Failed to load settings.")
+
+    def save_settings(self, data: Dict[str, Any]):
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute(
+                    'INSERT INTO settings (id, data) VALUES (1, ?)\n                     ON CONFLICT(id) DO UPDATE SET data=excluded.data',
+                    (json.dumps(data),)
+                )
+        except sqlite3.Error as e:
+            logger.error(f"Database error in save_settings: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail="Failed to save settings.")
+
     def close(self):
         self.conn.close()
 
@@ -941,7 +1012,24 @@ app = FastAPI()
 
 # Ensure uploads directory exists and mount static files
 os.makedirs('uploads/customers', exist_ok=True)
+os.makedirs('uploads/branding', exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+@app.post("/upload-logo")
+def upload_logo(file: UploadFile = File(...)):
+    try:
+        if not file or not file.filename:
+            raise HTTPException(status_code=400, detail="No file uploaded")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+        filename = f"branding/{timestamp}_{_safe_filename(file.filename)}"
+        dest_path = os.path.join("uploads", filename)
+        with open(dest_path, "wb") as out:
+            out.write(file.file.read())
+        return {"url": f"/uploads/{filename}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in /upload-logo: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Logo upload failed")
 
 # Add CORS middleware
 app.add_middleware(
@@ -1521,3 +1609,15 @@ def get_stats():
     except Exception as e:
         logger.error(f"Error in /stats endpoint: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Unable to retrieve stats due to a server error. Please try again.")
+
+# --- Settings endpoints ---
+@app.get("/settings")
+def api_get_settings():
+    return db.get_settings()
+
+@app.post("/settings")
+def api_save_settings(payload: Dict[str, Any]):
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    db.save_settings(payload)
+    return {"ok": True}
