@@ -504,26 +504,48 @@ class Database:
             raise HTTPException(
                 status_code=500, detail=f"Failed to update rental ID {rental_id} due to a server error. Please try again.")
 
-    def get_all_rentals(self) -> List[Rental]:
+    def get_all_rentals(self) -> List[dict]:
         try:
             with self.conn:
                 cursor = self.conn.cursor()
-                cursor.execute('SELECT * FROM rentals')
+                cursor.execute('''
+                    SELECT r.id, r.car_id, r.customer_id, r.start_date, r.end_date, r.total_cost,
+                        r.deposit_amount, r.is_paid, r.payment_method,
+                        c.make, c.model, c.year, c.price_per_day, c.available,
+                        cu.name, cu.email
+                    FROM rentals r
+                    JOIN cars c ON r.car_id = c.id
+                    JOIN customers cu ON r.customer_id = cu.id
+                    ORDER BY r.id DESC
+                ''')
                 rows = cursor.fetchall()
-                rentals = []
+                result = []
                 for row in rows:
-                    rentals.append(Rental(
-                        id=row[0],
-                        car_id=row[1],
-                        customer_id=row[2],
-                        start_date=row[3],
-                        end_date=row[4],
-                        total_cost=row[5],
-                        deposit_amount=row[6],
-                        is_paid=bool(row[7]) if row[7] is not None else False,
-                        payment_method=row[8]
-                    ))
-                return rentals
+                    result.append({
+                        "id": row[0],
+                        "car_id": row[1],
+                        "customer_id": row[2],
+                        "start_date": row[3],
+                        "end_date": row[4],
+                        "total_cost": row[5] if row[5] is not None else 0.0,
+                        "deposit_amount": row[6] if row[6] is not None else 0.0,
+                        "is_paid": bool(row[7]) if row[7] is not None else False,
+                        "payment_method": row[8],
+                        "car": {
+                            "id": row[1],
+                            "make": row[9],
+                            "model": row[10],
+                            "year": row[11],
+                            "price_per_day": row[12],
+                            "available": bool(row[13])
+                        },
+                        "customer": {
+                            "id": row[2],
+                            "name": row[14],
+                            "email": row[15]
+                        }
+                    })
+                return result
         except sqlite3.Error as e:
             logger.error(
                 f"Database error in get_all_rentals: {str(e)}\n{traceback.format_exc()}")
@@ -1102,7 +1124,7 @@ def add_customer(
         )
 
 
-@app.get("/rentals", response_model=List[Rental])
+@app.get("/rentals", response_model=List[dict])
 def get_rentals():
     try:
         return db.get_all_rentals()

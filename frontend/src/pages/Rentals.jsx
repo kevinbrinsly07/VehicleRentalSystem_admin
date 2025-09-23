@@ -1,33 +1,55 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import axios from "axios";
 // eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from 'framer-motion';
-import { PlusIcon, XMarkIcon, CheckIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  PlusIcon,
+  XMarkIcon,
+  CheckIcon,
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 
-const API_BASE = 'http://localhost:8000';
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import QuotationPDF from "./QuotationPDF";
+
+const API_BASE = "http://localhost:8000";
 
 function Rentals() {
   const [rentals, setRentals] = useState([]);
   const [availableCars, setAvailableCars] = useState([]);
+  const [allCars, setAllCars] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [formData, setFormData] = useState({
-    car_id: '',
-    customer_id: '',
-    start_date: '',
-    days: '', // Changed from end_date to days
+    car_id: "",
+    customer_id: "",
+    start_date: "",
+    days: "", // Changed from end_date to days
     deposit_amount: 0,
     is_paid: false,
-    payment_method: '',
+    payment_method: "",
   });
   const [showRentForm, setShowRentForm] = useState(false);
-  const [selectedRentalId, setSelectedRentalId] = useState('');
+  const [selectedRentalId, setSelectedRentalId] = useState("");
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchRentals();
     fetchAvailableCars();
     fetchCustomers();
+    fetchAllCars();
   }, []);
+  const fetchAllCars = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/cars`);
+      setAllCars(res.data);
+      setError(null);
+    } catch (err) {
+      setError(
+        err.response?.data?.detail || "Failed to fetch cars. Please try again."
+      );
+      console.error("Error fetching all cars:", err);
+    }
+  };
 
   const fetchRentals = async () => {
     try {
@@ -35,8 +57,11 @@ function Rentals() {
       setRentals(res.data);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch rentals. Please try again.');
-      console.error('Error fetching rentals:', err);
+      setError(
+        err.response?.data?.detail ||
+          "Failed to fetch rentals. Please try again."
+      );
+      console.error("Error fetching rentals:", err);
     }
   };
 
@@ -46,8 +71,11 @@ function Rentals() {
       setAvailableCars(res.data);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch available cars. Please try again.');
-      console.error('Error fetching available cars:', err);
+      setError(
+        err.response?.data?.detail ||
+          "Failed to fetch available cars. Please try again."
+      );
+      console.error("Error fetching available cars:", err);
     }
   };
 
@@ -57,13 +85,17 @@ function Rentals() {
       setCustomers(res.data);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch customers. Please try again.');
-      console.error('Error fetching customers:', err);
+      setError(
+        err.response?.data?.detail ||
+          "Failed to fetch customers. Please try again."
+      );
+      console.error("Error fetching customers:", err);
     }
   };
 
   const handleInputChange = (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    const value =
+      e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setFormData({ ...formData, [e.target.name]: value });
   };
 
@@ -79,20 +111,23 @@ function Rentals() {
       });
       setShowRentForm(false);
       setFormData({
-        car_id: '',
-        customer_id: '',
-        start_date: '',
-        days: '',
+        car_id: "",
+        customer_id: "",
+        start_date: "",
+        days: "",
         deposit_amount: 0,
         is_paid: false,
-        payment_method: '',
+        payment_method: "",
       });
       setError(null);
       fetchRentals();
       fetchAvailableCars();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create rental. Please try again.');
-      console.error('Error renting car:', err);
+      setError(
+        err.response?.data?.detail ||
+          "Failed to create rental. Please try again."
+      );
+      console.error("Error renting car:", err);
     }
   };
 
@@ -100,13 +135,15 @@ function Rentals() {
     if (!selectedRentalId) return;
     try {
       await axios.put(`${API_BASE}/rentals/${selectedRentalId}/return`);
-      setSelectedRentalId('');
+      setSelectedRentalId("");
       setError(null);
       fetchRentals();
       fetchAvailableCars();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to return car. Please try again.');
-      console.error('Error returning car:', err);
+      setError(
+        err.response?.data?.detail || "Failed to return car. Please try again."
+      );
+      console.error("Error returning car:", err);
     }
   };
 
@@ -160,7 +197,11 @@ function Rentals() {
           >
             <option value="">Select Rental to Return</option>
             {rentals
-              .filter((r) => !r.end_date || r.end_date >= new Date().toISOString().split('T')[0])
+              .filter(
+                (r) =>
+                  !r.end_date ||
+                  r.end_date >= new Date().toISOString().split("T")[0]
+              )
               .map((rental) => (
                 <option key={rental.id} value={rental.id}>
                   ID: {rental.id} - Car: {rental.car_id}
@@ -184,7 +225,7 @@ function Rentals() {
         {showRentForm && (
           <motion.form
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
             onSubmit={handleRentSubmit}
@@ -201,7 +242,8 @@ function Rentals() {
                 <option value="">Select Car</option>
                 {availableCars.map((car) => (
                   <option key={car.id} value={car.id}>
-                    {car.year} {car.make} {car.model} - ${car.price_per_day}/day
+                    {car.year} {car.make} {car.model} - LKR {car.price_per_day}
+                    /day
                   </option>
                 ))}
               </select>
@@ -280,60 +322,140 @@ function Rentals() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+        className="bg-white rounded-lg shadow-lg border border-gray-200"
       >
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700">
-              <th className="p-4 text-left font-semibold">ID</th>
-              <th className="p-4 text-left font-semibold">Car ID</th>
-              <th className="p-4 text-left font-semibold">Customer ID</th>
-              <th className="p-4 text-left font-semibold">Start</th>
-              <th className="p-4 text-left font-semibold">End</th>
-              <th className="p-4 text-left font-semibold">Cost</th>
-              <th className="p-4 text-left font-semibold">Deposit</th>
-              <th className="p-4 text-left font-semibold">Paid</th>
-              <th className="p-4 text-left font-semibold">Method</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rentals.map((rental, index) => (
-              <motion.tr
-                key={rental.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="border-t border-gray-200 hover:bg-gray-50 transition"
-              >
-                <td className="p-4 text-gray-600">{rental.id}</td>
-                <td className="p-4 text-gray-600">{rental.car_id}</td>
-                <td className="p-4 text-gray-600">{rental.customer_id}</td>
-                <td className="p-4 text-gray-600">{rental.start_date}</td>
-                <td className="p-4 text-gray-600">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      rental.end_date ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
-                    }`}
-                  >
-                    {rental.end_date || 'Active'}
-                  </span>
-                </td>
-                <td className="p-4 text-gray-600">${(rental.total_cost || 0).toFixed(2)}</td>
-                <td className="p-4 text-gray-600">${rental.deposit_amount.toFixed(2)}</td>
-                <td className="p-4 text-gray-600">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      rental.is_paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {rental.is_paid ? 'Yes' : 'No'}
-                  </span>
-                </td>
-                <td className="p-4 text-gray-600">{rental.payment_method || 'N/A'}</td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
+          <table className="min-w-[900px] w-full">
+            <thead>
+              <tr className="bg-gray-100 text-gray-700">
+                <th className="p-4 text-left font-semibold">ID</th>
+                <th className="p-4 text-left font-semibold">Vehicle</th>
+                <th className="p-4 text-left font-semibold">Customer</th>
+                <th className="p-4 text-left font-semibold">Start</th>
+                <th className="p-4 text-left font-semibold">End</th>
+                <th className="p-4 text-left font-semibold">Cost</th>
+                <th className="p-4 text-left font-semibold">Deposit</th>
+                <th className="p-4 text-left font-semibold">Paid</th>
+                <th className="p-4 text-left font-semibold">Method</th>
+                <th className="p-4 text-left font-semibold">Quotation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rentals.map((rental, index) => (
+                <motion.tr
+                  key={rental.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="border-t border-gray-200 hover:bg-gray-50 transition"
+                >
+                  <td className="p-4 text-gray-600">{rental.id}</td>
+                  <td className="p-4 text-gray-600">
+                    {(() => {
+                      const car = allCars.find((c) => c.id === rental.car_id);
+                      return car ? (
+                        <span>
+                          {car.year} {car.make} {car.model}{" "}
+                          <span className="text-gray-400">(#{car.id})</span>
+                        </span>
+                      ) : (
+                        <span>Car #{rental.car_id}</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    {(() => {
+                      const cust = customers.find(
+                        (c) => c.id === rental.customer_id
+                      );
+                      return cust ? (
+                        <span>
+                          {cust.name}{" "}
+                          <span className="text-gray-400">(#{cust.id})</span>
+                        </span>
+                      ) : (
+                        <span>Customer #{rental.customer_id}</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="p-4 text-gray-600">{rental.start_date}</td>
+                  <td className="p-4 text-gray-600">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        rental.end_date
+                          ? "bg-gray-100 text-gray-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {rental.end_date || "Active"}
+                    </span>
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    LKR {(rental.total_cost || 0).toFixed(2)}
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    LKR {rental.deposit_amount.toFixed(2)}
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        rental.is_paid
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {rental.is_paid ? "Yes" : "No"}
+                    </span>
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    {rental.payment_method || "N/A"}
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    <PDFDownloadLink
+                      document={
+                        <QuotationPDF
+                          quote={{
+                            quote_id: `Q-${rental.id || "TEMP"}`,
+                            date: new Date().toISOString().split("T")[0],
+                            customer_name: rental.customer?.name || "N/A",
+                            customer_email: rental.customer?.email || "",
+                            items: [
+                              {
+                                qty: 1,
+                                desc: `Car Rental — ${rental.car?.year ?? ''} ${rental.car?.make ?? ''} ${rental.car?.model ?? ''} (Rental #${rental.id})\nPeriod: ${rental.start_date} to ${rental.end_date || 'TBD'}`.trim(),
+                                rate: Number(rental.total_cost || 0),
+                                amount: Number(rental.total_cost || 0),
+                              },
+                              ...(Number(rental.deposit_amount || 0) > 0
+                                ? [
+                                    {
+                                      qty: 1,
+                                      desc: 'Refundable Deposit',
+                                      rate: Number(rental.deposit_amount || 0),
+                                      amount: Number(rental.deposit_amount || 0),
+                                    },
+                                  ]
+                                : []),
+                            ],
+                            total_cost: Number(rental.total_cost || 0),
+                          }}
+                        />
+                      }
+                      fileName={`Akalanka_Quotation_${rental.id || "TEMP"}_${
+                        new Date().toISOString().split("T")[0]
+                      }.pdf`}
+                      className="bg-gray-800 text-white px-3 py-1 rounded-md text-sm hover:bg-gray-700 transition"
+                    >
+                      {({ loading }) =>
+                        loading ? "Preparing..." : "Download"
+                      }
+                    </PDFDownloadLink>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </motion.div>
 
       {rentals.length === 0 && (

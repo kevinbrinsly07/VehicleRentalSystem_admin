@@ -12,95 +12,194 @@ const API_BASE = 'http://localhost:8000';
 const pdfStyles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 12,
-    padding: 20,
-    color: '#000',
+    fontSize: 11,
+    paddingTop: 28,
+    paddingHorizontal: 28,
+    paddingBottom: 36,
+    color: '#111827',
   },
-  section: {
-    marginBottom: 10,
-  },
-  heading: {
-    fontSize: 18,
-    marginBottom: 15,
-    fontWeight: 'bold',
-  },
-  label: {
-    fontWeight: 'bold',
-  },
-  value: {
-    marginLeft: 5,
-  },
-  row: {
+  header: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    borderBottomStyle: 'solid',
+    paddingBottom: 10,
+    marginBottom: 12,
     flexDirection: 'row',
-    marginBottom: 5,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  statusPaid: {
-    color: 'green',
+  brandLeft: { flexDirection: 'row', alignItems: 'center' },
+  brandMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#4F46E5',
+    marginRight: 8,
+  },
+  brandTitle: { fontSize: 14, fontWeight: 'bold', color: '#111827' },
+  brandSub: { fontSize: 9, color: '#6B7280', marginTop: 2 },
+
+  titleBlock: { textAlign: 'right' },
+  docTitle: { fontSize: 22, fontWeight: 'bold', color: '#111827' },
+  docMeta: { fontSize: 10, color: '#374151', marginTop: 2 },
+
+  sectionRow: { flexDirection: 'row', marginBottom: 12 },
+  section: { flex: 1 },
+  sectionTitle: { fontSize: 11, fontWeight: 'bold', marginBottom: 6, color: '#111827' },
+  text: { fontSize: 10, color: '#374151', lineHeight: 1.4 },
+
+  table: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderStyle: 'solid',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginTop: 6,
+    marginBottom: 12,
+  },
+  tableRow: { flexDirection: 'row' },
+  th: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    fontSize: 10,
     fontWeight: 'bold',
+    color: '#111827',
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
+    borderRightStyle: 'solid',
   },
-  statusUnpaid: {
-    color: 'red',
-    fontWeight: 'bold',
+  td: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    fontSize: 10,
+    color: '#111827',
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
+    borderRightStyle: 'solid',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    borderTopStyle: 'solid',
   },
+  colQty: { width: '10%' },
+  colDesc: { width: '52%' },
+  colRate: { width: '18%', textAlign: 'right' },
+  colAmount: { width: '20%', textAlign: 'right' },
+
+  totals: { marginLeft: 'auto', width: '50%' },
+  totalsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  totalsLabel: { fontSize: 10, color: '#374151' },
+  totalsValue: { fontSize: 10, color: '#111827' },
+  totalsStrong: { fontSize: 12, fontWeight: 'bold' },
+
+  notes: { marginTop: 8, fontSize: 9, color: '#6B7280' },
+
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 28,
+    right: 28,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    borderTopStyle: 'solid',
+    paddingTop: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  footerText: { fontSize: 9, color: '#6B7280' },
 });
 
 function InvoicePDF({ invoice }) {
+  const amount = Number(invoice.total_cost || 0);
+  const deposit = Number(invoice.deposit_amount || 0);
+  const subtotal = amount;
+  const total = amount; // If you add taxes/fees later, adjust here
+
+  const fmt = (n) => `LKR ${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <Document>
       <Page size="A4" style={pdfStyles.page}>
-        <Text style={pdfStyles.heading}>Invoice</Text>
+        {/* Letterhead / Header */}
+        <View style={pdfStyles.header}>
+          <View style={pdfStyles.brandLeft}>
+            <View style={pdfStyles.brandMark} />
+            <View>
+              <Text style={pdfStyles.brandTitle}>Akalanka Enterprises</Text>
+              <Text style={pdfStyles.brandSub}>Vehicle Rentals &amp; Services</Text>
+            </View>
+          </View>
+          <View style={pdfStyles.titleBlock}>
+            <Text style={pdfStyles.docTitle}>INVOICE</Text>
+            <Text style={pdfStyles.docMeta}>Invoice #: {invoice.sale_id}</Text>
+            <Text style={pdfStyles.docMeta}>Date: {invoice.sale_date}</Text>
+          </View>
+        </View>
 
-        <View style={pdfStyles.section}>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Rental ID:</Text>
-            <Text style={pdfStyles.value}>{invoice.rental_id}</Text>
+        {/* From / To */}
+        <View style={pdfStyles.sectionRow}>
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>From</Text>
+            <Text style={pdfStyles.text}>Akalanka Enterprises</Text>
+            <Text style={pdfStyles.text}>Colombo, Sri Lanka</Text>
+            <Text style={pdfStyles.text}>Phone: +94 77 000 0000</Text>
+            <Text style={pdfStyles.text}>Email: billing@akalanka.lk</Text>
           </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Sale ID:</Text>
-            <Text style={pdfStyles.value}>{invoice.sale_id}</Text>
+          <View style={pdfStyles.section}>
+            <Text style={pdfStyles.sectionTitle}>Bill To</Text>
+            <Text style={pdfStyles.text}>{invoice.customer_name}</Text>
+            <Text style={pdfStyles.text}>{invoice.customer_email}</Text>
           </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Customer:</Text>
-            <Text style={pdfStyles.value}>
-              {invoice.customer_name} ({invoice.customer_email})
+        </View>
+
+        {/* Rental summary table */}
+        <View style={pdfStyles.table}>
+          {/* Header */}
+          <View style={pdfStyles.tableRow}>
+            <Text style={[pdfStyles.th, pdfStyles.colQty]}>Qty</Text>
+            <Text style={[pdfStyles.th, pdfStyles.colDesc]}>Description</Text>
+            <Text style={[pdfStyles.th, pdfStyles.colRate]}>Rate</Text>
+            <Text style={[pdfStyles.th, pdfStyles.colAmount]}>Amount</Text>
+          </View>
+          {/* Single line item */}
+          <View style={pdfStyles.tableRow}>
+            <Text style={[pdfStyles.td, pdfStyles.colQty]}>1</Text>
+            <Text style={[pdfStyles.td, pdfStyles.colDesc]}>
+              Car Rental — {invoice.car_year} {invoice.car_make} {invoice.car_model} (Rental #{invoice.rental_id}){"\n"}
+              Period: {invoice.start_date} to {invoice.end_date}
             </Text>
+            <Text style={[pdfStyles.td, pdfStyles.colRate]}>{fmt(subtotal)}</Text>
+            <Text style={[pdfStyles.td, pdfStyles.colAmount]}>{fmt(subtotal)}</Text>
           </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Car:</Text>
-            <Text style={pdfStyles.value}>
-              {invoice.car_year} {invoice.car_make} {invoice.car_model}
-            </Text>
+        </View>
+
+        {/* Totals */}
+        <View style={pdfStyles.totals}>
+          <View style={pdfStyles.totalsRow}>
+            <Text style={pdfStyles.totalsLabel}>Subtotal</Text>
+            <Text style={pdfStyles.totalsValue}>{fmt(subtotal)}</Text>
           </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Rental Period:</Text>
-            <Text style={pdfStyles.value}>
-              {invoice.start_date} to {invoice.end_date}
-            </Text>
+          <View style={pdfStyles.totalsRow}>
+            <Text style={pdfStyles.totalsLabel}>Deposit Paid</Text>
+            <Text style={pdfStyles.totalsValue}>- {fmt(deposit)}</Text>
           </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Total Cost:</Text>
-            <Text style={pdfStyles.value}>LKR {invoice.total_cost.toFixed(2)}</Text>
+          <View style={pdfStyles.totalsRow}>
+            <Text style={[pdfStyles.totalsLabel, pdfStyles.totalsStrong]}>Total Due</Text>
+            <Text style={[pdfStyles.totalsValue, pdfStyles.totalsStrong]}>{fmt(total - deposit)}</Text>
           </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Deposit Paid:</Text>
-            <Text style={pdfStyles.value}>LKR {invoice.deposit_amount.toFixed(2)}</Text>
-          </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Payment Status:</Text>
-            <Text
-              style={invoice.is_paid ? pdfStyles.statusPaid : pdfStyles.statusUnpaid}
-            >
-              {invoice.is_paid ? 'Paid' : 'Unpaid'}
-            </Text>
-          </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Payment Method:</Text>
-            <Text style={pdfStyles.value}>{invoice.payment_method}</Text>
-          </View>
-          <View style={pdfStyles.row}>
-            <Text style={pdfStyles.label}>Sale Date:</Text>
-            <Text style={pdfStyles.value}>{invoice.sale_date}</Text>
-          </View>
+        </View>
+
+        {/* Notes */}
+        <Text style={pdfStyles.notes}>
+          Thank you for choosing Akalanka Enterprises. Please make payment within 7 days of the
+          invoice date. For bank transfers, use Invoice #{invoice.sale_id} as the reference.
+        </Text>
+
+        {/* Footer */}
+        <View style={pdfStyles.footer}>
+          <Text style={pdfStyles.footerText}>www.akalanka.lk</Text>
+          <Text style={pdfStyles.footerText}>This is a system-generated invoice.</Text>
         </View>
       </Page>
     </Document>
@@ -179,45 +278,66 @@ function Invoices() {
       )}
 
       <div className="flex flex-col gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden mb-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 mb-0">
+          <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
+            <table className="min-w-[1000px] w-full">
               <thead>
                 <tr className="bg-gray-100 text-gray-700">
-                  <th className="p-4 text-left font-semibold">Select</th>
-                  <th className="p-4 text-left font-semibold">Rental ID</th>
-                  <th className="p-4 text-left font-semibold">Car ID</th>
-                  <th className="p-4 text-left font-semibold">End Date</th>
+                  <th className="p-3 text-left font-semibold w-5">Select</th>
+                  <th className="p-3 text-left font-semibold w-14">Rental ID</th>
+                  <th className="p-3 text-left font-semibold w-14">Customer Name</th>
+                  <th className="p-3 text-left font-semibold w-14">Vehicle</th>
+                  <th className="p-3 text-left font-semibold w-14">Start Date</th>
+                  <th className="p-3 text-left font-semibold w-14">End Date</th>
                 </tr>
               </thead>
               <tbody>
-                {rentals.map((rental, index) => (
-                  <motion.tr
-                    key={rental.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className={`border-t border-gray-200 transition cursor-pointer ${
-                      selectedRentalId === String(rental.id)
-                        ? 'bg-gray-100 font-medium'
-                        : 'hover:bg-gray-50'
-                    }`}
-                    onClick={() => setSelectedRentalId(String(rental.id))}
-                    aria-selected={selectedRentalId === String(rental.id)}
-                  >
-                    <td className="p-4">
-                      <input
-                        type="radio"
-                        name="selectedRental"
-                        checked={selectedRentalId === String(rental.id)}
-                        onChange={() => setSelectedRentalId(String(rental.id))}
-                      />
-                    </td>
-                    <td className="p-4 text-gray-600">{rental.id}</td>
-                    <td className="p-4 text-gray-600">{rental.car_id}</td>
-                    <td className="p-4 text-gray-600">{rental.end_date}</td>
-                  </motion.tr>
-                ))}
+                {rentals.map((rental, index) => {
+                  const cust = rental.customer || {};
+                  const car = rental.car || {};
+                  const carLabel = (car.year || car.make || car.model)
+                    ? `${car.year ?? ''} ${car.make ?? ''} ${car.model ?? ''}`.trim()
+                    : `Car #${rental.car_id}`;
+                  return (
+                    <motion.tr
+                      key={rental.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25, delay: index * 0.03 }}
+                      className={`border-t border-gray-200 transition cursor-pointer ${
+                        selectedRentalId === String(rental.id)
+                          ? 'bg-gray-100 font-medium'
+                          : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedRentalId(String(rental.id))}
+                      aria-selected={selectedRentalId === String(rental.id)}
+                    >
+                      <td className="p-3 align-middle">
+                        <input
+                          type="radio"
+                          name="selectedRental"
+                          checked={selectedRentalId === String(rental.id)}
+                          onChange={() => setSelectedRentalId(String(rental.id))}
+                        />
+                      </td>
+                      <td className="p-3 text-gray-700 align-middle">{rental.id}</td>
+                      <td className="p-3 text-gray-700 align-middle truncate">
+                        <div className="max-w-[14rem] truncate" title={cust.name || `Customer #${rental.customer_id}` }>
+                          {cust.name ? (
+                            <span>{cust.name}</span>
+                          ) : (
+                            <span>Customer #{rental.customer_id}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-gray-700 align-middle truncate">
+                        <div className="max-w-[14rem] truncate" title={carLabel}>{carLabel}</div>
+                      </td>
+                      <td className="p-3 text-gray-700 align-middle whitespace-nowrap">{rental.start_date}</td>
+                      <td className="p-3 text-gray-700 align-middle whitespace-nowrap">{rental.end_date}</td>
+                    </motion.tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -283,7 +403,7 @@ function Invoices() {
             {/* PDF Download Button */}
             <PDFDownloadLink
               document={<InvoicePDF invoice={invoice} />}
-              fileName={`invoice_${invoice.rental_id}.pdf`}
+              fileName={`Akalanka_Invoice_${invoice.sale_id}_${invoice.sale_date}.pdf`}
               className="mt-4 inline-block bg-black text-white px-5 py-2 rounded-lg shadow hover:bg-gray-900 transition"
             >
               {({ loading }) => (loading ? 'Preparing PDF...' : 'Download Invoice PDF')}

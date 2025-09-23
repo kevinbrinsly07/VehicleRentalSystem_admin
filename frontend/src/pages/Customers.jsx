@@ -189,66 +189,68 @@ function Customers() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+        className="bg-white rounded-lg shadow-lg border border-gray-200"
       >
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700">
-              <th className="p-4 text-left font-semibold">ID</th>
-              <th className="p-4 text-left font-semibold">Name</th>
-              <th className="p-4 text-left font-semibold">Email</th>
-              <th className="p-4 text-left font-semibold">Phone</th>
-              <th className="p-4 text-left font-semibold">ID Card</th>
-              <th className="p-4 text-left font-semibold">Driving License</th>
-            </tr>
-          </thead>
-          <tbody>
-            {customers.map((customer, index) => (
-              <motion.tr
-                key={customer.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="border-t border-gray-200 hover:bg-gray-50 transition"
-              >
-                <td className="p-4 text-gray-600">{customer.id}</td>
-                <td className="p-4 text-gray-600">{customer.name}</td>
-                <td className="p-4 text-gray-600">{customer.email}</td>
-                <td className="p-4 text-gray-600">
-                  {customer.phone || <span className="text-gray-400">—</span>}
-                </td>
-                <td className="p-4 text-gray-600">
-                  {customer.id_card_url ? (
-                    <a
-                      href={`http://localhost:8000${customer.id_card_url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-100"
-                    >
-                      View
-                    </a>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="p-4 text-gray-600">
-                  {customer.driving_license_url ? (
-                    <a
-                      href={`http://localhost:8000${customer.driving_license_url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-100"
-                    >
-                      View
-                    </a>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
+          <table className="min-w-[900px] w-full">
+            <thead>
+              <tr className="bg-gray-100 text-gray-700">
+                <th className="p-4 text-left font-semibold">ID</th>
+                <th className="p-4 text-left font-semibold">Name</th>
+                <th className="p-4 text-left font-semibold">Email</th>
+                <th className="p-4 text-left font-semibold">Phone</th>
+                <th className="p-4 text-left font-semibold">ID Card</th>
+                <th className="p-4 text-left font-semibold">Driving License</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map((customer, index) => (
+                <motion.tr
+                  key={customer.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="border-t border-gray-200 hover:bg-gray-50 transition"
+                >
+                  <td className="p-4 text-gray-600">{customer.id}</td>
+                  <td className="p-4 text-gray-600">{customer.name}</td>
+                  <td className="p-4 text-gray-600">{customer.email}</td>
+                  <td className="p-4 text-gray-600">
+                    {customer.phone || <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    {customer.id_card_url ? (
+                      <a
+                        href={`http://localhost:8000${customer.id_card_url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-100"
+                      >
+                        View
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="p-4 text-gray-600">
+                    {customer.driving_license_url ? (
+                      <a
+                        href={`http://localhost:8000${customer.driving_license_url}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1 rounded-md border border-gray-300 text-sm hover:bg-gray-100"
+                      >
+                        View
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </motion.div>
 
       {customers.length === 0 && (
